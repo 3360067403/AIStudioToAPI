@@ -13,7 +13,7 @@ const path = require("path");
 // --- Configuration Constants ---
 const browserExecutablePath = path.join(__dirname, "..", "camoufox", "camoufox.exe");
 const VALIDATION_LINE_THRESHOLD = 200; // Validation line threshold
-const CONFIG_DIR = "configs"; // Authentication files directory
+const CONFIG_DIR = "configs/auth"; // Authentication files directory
 
 /**
  * Ensures that the specified directory exists, creating it if it doesn't.
@@ -27,7 +27,7 @@ const ensureDirectoryExists = dirPath => {
 };
 
 /**
- * Gets the next available authentication file index from the 'auth' directory.
+ * Gets the next available authentication file index from the 'configs/auth' directory.
  * @returns {number} - The next available index value.
  */
 const getNextAuthIndex = () => {

@@ -54,9 +54,9 @@ class AuthSource {
                 }
             }
         } else {
-            const configDir = path.join(process.cwd(), "configs");
+            const configDir = path.join(process.cwd(), "configs", "auth");
             if (!fs.existsSync(configDir)) {
-                this.logger.warn('[Auth] "configs/" directory does not exist.');
+                this.logger.warn('[Auth] "configs/auth" directory does not exist.');
                 this.availableIndices = [];
                 return;
             }
@@ -123,7 +123,7 @@ class AuthSource {
         if (this.authMode === "env") {
             return process.env[`AUTH_JSON_${index}`];
         } else {
-            const authFilePath = path.join(process.cwd(), "configs", `auth_${index}.json`);
+            const authFilePath = path.join(process.cwd(), "configs", "auth", `auth_${index}.json`);
             if (!fs.existsSync(authFilePath)) return null;
             try {
                 return fs.readFileSync(authFilePath, "utf-8");

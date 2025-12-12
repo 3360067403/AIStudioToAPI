@@ -10,7 +10,7 @@ camoufox/
 camoufox*.zip
 
 # Authentication files
-configs/auth*.json
+configs/auth/
 
 # Temporary files
 tmp/
