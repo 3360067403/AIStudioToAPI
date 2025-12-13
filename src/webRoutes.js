@@ -259,6 +259,20 @@ class WebRoutes {
             this.logger.info(`[WebUI] Force thinking toggle switched to: ${statusText}`);
             res.status(200).send(`Force thinking mode: ${statusText}`);
         });
+
+        app.post("/api/toggle-force-web-search", isAuthenticated, (req, res) => {
+            this.serverSystem.forceWebSearch = !this.serverSystem.forceWebSearch;
+            const statusText = this.serverSystem.forceWebSearch ? "Enabled" : "Disabled";
+            this.logger.info(`[WebUI] Force web search toggle switched to: ${statusText}`);
+            res.status(200).send(`Force web search: ${statusText}`);
+        });
+
+        app.post("/api/toggle-force-url-context", isAuthenticated, (req, res) => {
+            this.serverSystem.forceUrlContext = !this.serverSystem.forceUrlContext;
+            const statusText = this.serverSystem.forceUrlContext ? "Enabled" : "Disabled";
+            this.logger.info(`[WebUI] Force URL context toggle switched to: ${statusText}`);
+            res.status(200).send(`Force URL context: ${statusText}`);
+        });
     }
 
     /**
@@ -315,6 +329,8 @@ class WebRoutes {
             status: {
                 streamingMode: `${this.serverSystem.streamingMode} (only applies when streaming is enabled)`,
                 forceThinking: this.serverSystem.forceThinking ? "✅ Enabled" : "❌ Disabled",
+                forceUrlContext: this.serverSystem.forceUrlContext ? "✅ Enabled" : "❌ Disabled",
+                forceWebSearch: this.serverSystem.forceWebSearch ? "✅ Enabled" : "❌ Disabled",
                 browserConnected: !!browserManager.browser,
                 immediateSwitchStatusCodes:
                     config.immediateSwitchStatusCodes.length > 0
@@ -369,6 +385,8 @@ class WebRoutes {
             browserConnectedClass: browserManager.browser ? "status-ok" : "status-error",
             streamingMode: config.streamingMode,
             forceThinking: this.serverSystem.forceThinking ? "✅ Enabled" : "❌ Disabled",
+            forceUrlContext: this.serverSystem.forceUrlContext ? "✅ Enabled" : "❌ Disabled",
+            forceWebSearch: this.serverSystem.forceWebSearch ? "✅ Enabled" : "❌ Disabled",
             apiKeySource: config.apiKeySource,
             currentAuthIndex: requestHandler.currentAuthIndex,
             usageCount: `${requestHandler.usageCount} / ${config.switchOnUses > 0 ? config.switchOnUses : "N/A"}`,

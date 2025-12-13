@@ -31,7 +31,9 @@ class ProxyServerSystem extends EventEmitter {
         const configLoader = new ConfigLoader(this.logger);
         this.config = configLoader.loadConfiguration();
         this.streamingMode = this.config.streamingMode;
-        this.forceThinking = false; // Always enable thinking mode for better compatibility
+        this.forceThinking = this.config.forceThinking;
+        this.forceWebSearch = this.config.forceWebSearch;
+        this.forceUrlContext = this.config.forceUrlContext;
 
         this.authSource = new AuthSource(this.logger);
         this.browserManager = new BrowserManager(
@@ -114,7 +116,8 @@ class ProxyServerSystem extends EventEmitter {
         return (req, res, next) => {
             // Whitelist paths that don't require API key authentication
             // Note: /, /api/status use session authentication instead
-            const whitelistPaths = ["/", "/favicon.ico", "/login", "/health", "/api/status", "/api/switch-account", "/api/set-mode", "/api/toggle-force-thinking"];
+            const whitelistPaths = ["/", "/favicon.ico", "/login", "/health", "/api/status", "/api/switch-account",
+                "/api/set-mode", "/api/toggle-force-thinking", "/api/toggle-force-web-search", "/api/toggle-force-url-context"];
             if (whitelistPaths.includes(req.path)) {
                 return next();
             }

@@ -26,12 +26,15 @@ class ConfigLoader {
             streamingMode: "real",
             failureThreshold: 3,
             switchOnUses: 40,
-            maxRetries: 1,
+            maxRetries: 3,
             retryDelay: 2000,
             browserExecutablePath: null,
             apiKeys: [],
             immediateSwitchStatusCodes: [429, 503],
             apiKeySource: "Not set",
+            forceThinking: false,
+            forceWebSearch: false,
+            forceUrlContext: false,
         };
 
         const configPath = path.join(process.cwd(), "config.json");
@@ -68,6 +71,12 @@ class ConfigLoader {
         if (process.env.API_KEYS) {
             config.apiKeys = process.env.API_KEYS.split(",");
         }
+        if (process.env.FORCE_THINKING)
+            config.forceThinking = process.env.FORCE_THINKING === "true";
+        if (process.env.FORCE_WEB_SEARCH)
+            config.forceWebSearch = process.env.FORCE_WEB_SEARCH === "true";
+        if (process.env.FORCE_URL_CONTEXT)
+            config.forceUrlContext = process.env.FORCE_URL_CONTEXT === "true";
 
         let rawCodes = process.env.IMMEDIATE_SWITCH_STATUS_CODES;
         let codesSource = "environment variable";
@@ -122,13 +131,13 @@ class ConfigLoader {
                 this.logger.warn(
                     `[System] models.json file not found, using default model list.`
                 );
-                config.modelList = ["gemini-1.5-pro-latest"];
+                config.modelList = ["gemini-2.5-flash"];
             }
         } catch (error) {
             this.logger.error(
                 `[System] Failed to read or parse models.json: ${error.message}, using default model list.`
             );
-            config.modelList = ["gemini-1.5-pro-latest"];
+            config.modelList = ["gemini-2.5-flash"];
         }
 
         this._printConfiguration(config);

@@ -202,7 +202,7 @@ class RequestProcessor {
             }
             if (queryParams.has("alt") && queryParams.get("alt") === "sse") {
                 queryParams.delete("alt");
-                Logger.output('Removed "alt=sse" query parameter.');
+                Logger.output("Removed \"alt=sse\" query parameter.");
             }
         }
         const queryString = queryParams.toString();
@@ -275,6 +275,7 @@ class RequestProcessor {
         ].forEach(h => delete sanitized[h]);
         return sanitized;
     }
+
     cancelOperation(operationId) {
         this.cancelledOperations.add(operationId); // Core: Add ID to cancelled set
         const controller = this.activeOperations.get(operationId);

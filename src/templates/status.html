@@ -203,6 +203,8 @@
 --- <span data-i18n="serviceConfig">Service Configuration</span> ---
 <span class="label" data-i18n="streamingMode">Streaming Mode</span>: {{streamingMode}}
 <span class="label" data-i18n="forceThinking">Force Thinking</span>: {{forceThinking}}
+<span class="label" data-i18n="forceWebSearch">Force Web Search</span>: {{forceWebSearch}}
+<span class="label" data-i18n="forceUrlContext">Force URL Context</span>: {{forceUrlContext}}
 <span class="label" data-i18n="apiKey">API Key</span>: {{apiKeySource}}
 --- <span data-i18n="accountStatus">Account Status</span> ---
 <span class="label" data-i18n="currentAccount">Current Active Account</span>: #{{currentAuthIndex}}
@@ -233,6 +235,20 @@
                     </el-switch>
                     <span class="switch-status">{{ forceThinkingText }}</span>
                 </div>
+                <div class="switch-container">
+                    <span class="switch-label" data-i18n="forceWebSearch">Force Web Search</span>
+                    <el-switch v-model="forceWebSearchEnabled" :before-change="handleForceWebSearchBeforeChange"
+                               style="--el-switch-on-color: #007bff; --el-switch-off-color: #dcdfe6">
+                    </el-switch>
+                    <span class="switch-status">{{ forceWebSearchText }}</span>
+                </div>
+                <div class="switch-container">
+                    <span class="switch-label" data-i18n="forceUrlContext">Force URL Context</span>
+                    <el-switch v-model="forceUrlContextEnabled" :before-change="handleForceUrlContextBeforeChange"
+                               style="--el-switch-on-color: #007bff; --el-switch-off-color: #dcdfe6">
+                    </el-switch>
+                    <span class="switch-status">{{ forceUrlContextText }}</span>
+                </div>
             </div>
             <div id="log-section" style="margin-top: 2em;">
                 <h2><span data-i18n="realtimeLogs">Real-time Logs</span> (<span data-i18n="latestEntries">Latest</span>
@@ -254,6 +270,8 @@
                 serviceConfig: 'Service Configuration',
                 streamingMode: 'Streaming Mode',
                 forceThinking: 'Force Thinking',
+                forceWebSearch: 'Force Web Search',
+                forceUrlContext: 'Force URL Context',
                 apiKey: 'API Key',
                 accountStatus: 'Account Status',
                 currentAccount: 'Current Active Account',
@@ -282,6 +300,8 @@
                 serviceConfig: '服务配置',
                 streamingMode: '流式模式',
                 forceThinking: '强制思考',
+                forceWebSearch: '强制联网',
+                forceUrlContext: '强制网址上下文',
                 apiKey: 'API 密钥',
                 accountStatus: '账户状态',
                 currentAccount: '当前活动账户',
@@ -336,6 +356,8 @@
                 return {
                     streamingModeReal: false,
                     forceThinkingEnabled: false,
+                    forceWebSearchEnabled: false,
+                    forceUrlContextEnabled: false,
                     isUpdating: false,
                 }
             },
@@ -345,7 +367,13 @@
                 },
                 forceThinkingText() {
                     return this.forceThinkingEnabled ? 'true' : 'false';
-                }
+                },
+                forceWebSearchText() {
+                    return this.forceWebSearchEnabled ? 'true' : 'false';
+                },
+                forceUrlContextText() {
+                    return this.forceUrlContextEnabled ? 'true' : 'false';
+                },
             },
             methods: {
                 handleStreamingModeBeforeChange() {
@@ -389,10 +417,48 @@
                             });
                     });
                 },
+                handleForceWebSearchBeforeChange() {
+                    if (this.isUpdating)  { return false; }
+
+                    const newValue = !this.forceWebSearchEnabled;
+
+                    return new Promise((resolve, reject) => {
+                        fetch('/api/toggle-force-web-search', { method: 'POST' })
+                            .then(res => res.text())
+                            .then(data => {
+                                ElementPlus.ElMessage.success(data);
+                                resolve(true);
+                            })
+                            .catch(err => {
+                                ElementPlus.ElMessage.error(t('settingFailed') + err);
+                                reject();
+                            });
+                    });
+                },
+                handleForceUrlContextBeforeChange() {
+                    if (this.isUpdating)  { return false; }
+
+                    const newValue = !this.forceUrlContextEnabled;
+
+                    return new Promise((resolve, reject) => {
+                        fetch('/api/toggle-force-url-context', { method: 'POST' })
+                            .then(res => res.text())
+                            .then(data => {
+                                ElementPlus.ElMessage.success(data);
+                                resolve(true);
+                            })
+                            .catch(err => {
+                                ElementPlus.ElMessage.error(t('settingFailed') + err);
+                                reject();
+                            });
+                    });
+                },
                 updateSwitchStates(data) {
                     this.isUpdating = true;
                     this.streamingModeReal = data.status.streamingMode.includes('real');
                     this.forceThinkingEnabled = data.status.forceThinking.includes('Enabled');
+                    this.forceWebSearchEnabled = data.status.forceWebSearch.includes('Enabled');
+                    this.forceUrlContextEnabled = data.status.forceUrlContext.includes('Enabled');
                     this.$nextTick(() => {
                         this.isUpdating = false;
                     });
@@ -403,10 +469,13 @@
 
                 const initialMode = '{{streamingMode}}';
                 const initialThinking = '{{forceThinking}}';
+                const initialWebSearch = '{{forceWebSearch}}';
+                const initialUrlContext = '{{forceUrlContext}}';
                 this.isUpdating = true;
                 this.streamingModeReal = initialMode === 'real';
                 this.forceThinkingEnabled = initialThinking === 'true' || initialThinking === true;
-
+                this.forceWebSearchEnabled = initialWebSearch === 'true' || initialWebSearch === true;
+                this.forceUrlContextEnabled = initialUrlContext === 'true' || initialUrlContext === true;
                 this.$nextTick(() => {
                     this.isUpdating = false;
                 });
@@ -434,6 +503,8 @@
                     '--- ' + t('serviceConfig') + ' ---\n' +
                     '<span class="label">' + t('streamingMode') + '</span>: ' + data.status.streamingMode + '\n' +
                     '<span class="label">' + t('forceThinking') + '</span>: ' + data.status.forceThinking + '\n' +
+                    '<span class="label">' + t('forceWebSearch') + '</span>: ' + data.status.forceWebSearch + '\n' +
+                    '<span class="label">' + t('forceUrlContext') + '</span>: ' + data.status.forceUrlContext + '\n' +
                     '<span class="label">' + t('immediateSwitchCodes') + '</span>: ' + data.status.immediateSwitchStatusCodes + '\n' +
                     '<span class="label">' + t('apiKey') + '</span>: ' + data.status.apiKeySource + '\n' +
                     '--- ' + t('accountStatus') + ' ---\n' +

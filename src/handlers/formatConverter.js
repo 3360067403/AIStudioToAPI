@@ -139,6 +139,39 @@ class FormatConverter {
 
         googleRequest.generationConfig = generationConfig;
 
+        // Force web search and URL context
+        if (this.serverSystem.forceWebSearch || this.serverSystem.forceUrlContext) {
+            if (!googleRequest.tools) {
+                googleRequest.tools = [];
+            }
+
+            const toolsToAdd = [];
+
+            // Handle Google Search
+            if (this.serverSystem.forceWebSearch) {
+                const hasSearch = googleRequest.tools.some(t => t.googleSearch);
+                if (!hasSearch) {
+                    googleRequest.tools.push({ googleSearch: {} });
+                    toolsToAdd.push("googleSearch");
+                }
+            }
+
+            // Handle URL Context
+            if (this.serverSystem.forceUrlContext) {
+                const hasUrlContext = googleRequest.tools.some(t => t.urlContext);
+                if (!hasUrlContext) {
+                    googleRequest.tools.push({ urlContext: {} });
+                    toolsToAdd.push("urlContext");
+                }
+            }
+
+            if (toolsToAdd.length > 0) {
+                this.logger.info(
+                    `[Adapter] ⚠️ Force features enabled, injecting tools: [${toolsToAdd.join(", ")}]`
+                );
+            }
+        }
+
         // Safety settings
         googleRequest.safetySettings = [
             { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -157,7 +190,7 @@ class FormatConverter {
      * @param {string} modelName - The model name
      * @param {object} streamState - Optional state object to track thought mode
      */
-    translateGoogleToOpenAIStream(googleChunk, modelName = "gemini-pro", streamState = null) {
+    translateGoogleToOpenAIStream(googleChunk, modelName = "gemini-2.5-flash", streamState = null) {
         if (!googleChunk || googleChunk.trim() === "") {
             return null;
         }
@@ -257,7 +290,7 @@ class FormatConverter {
     /**
      * Convert Google non-stream response to OpenAI format
      */
-    convertGoogleToOpenAINonStream(googleResponse, modelName = "gemini-pro") {
+    convertGoogleToOpenAINonStream(googleResponse, modelName = "gemini-2.5-flash") {
         const candidate = googleResponse.candidates?.[0];
 
         if (!candidate) {

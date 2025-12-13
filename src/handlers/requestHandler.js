@@ -177,7 +177,7 @@ class RequestHandler {
     async processOpenAIRequest(req, res) {
         const requestId = this._generateRequestId();
         const isOpenAIStream = req.body.stream === true;
-        const model = req.body.model || "gemini-1.5-pro-latest";
+        const model = req.body.model || "gemini-2.5-flash";
         const systemStreamMode = this.serverSystem.streamingMode;
         const useRealStream = isOpenAIStream && systemStreamMode === "real";
 
@@ -762,13 +762,84 @@ class RequestHandler {
     _buildProxyRequest(req, requestId) {
         const fullPath = req.path;
         const cleanPath = fullPath.replace(/^\/proxy/, "");
+        const bodyObj = req.body;
+
+        // Force thinking for native Google requests
+        if (
+            this.serverSystem.forceThinking
+            && req.method === "POST"
+            && bodyObj
+            && bodyObj.contents
+        ) {
+            if (!bodyObj.generationConfig) {
+                bodyObj.generationConfig = {};
+            }
+            if (!bodyObj.generationConfig.thinkingConfig) {
+                this.logger.info(
+                    `[Proxy] ⚠️ Force thinking enabled and client did not provide config, injecting thinkingConfig... (Google Native)`
+                );
+                bodyObj.generationConfig.thinkingConfig = { includeThoughts: true };
+            } else {
+                this.logger.info(
+                    `[Proxy] ✅ Client-provided thinking config detected, skipping force injection. (Google Native)`
+                );
+            }
+        }
+
+        // Force web search and URL context for native Google requests
+        if (
+            (this.serverSystem.forceWebSearch || this.serverSystem.forceUrlContext)
+            && req.method === "POST"
+            && bodyObj
+            && bodyObj.contents
+        ) {
+            if (!bodyObj.tools) {
+                bodyObj.tools = [];
+            }
+
+            const toolsToAdd = [];
+
+            // Handle Google Search
+            if (this.serverSystem.forceWebSearch) {
+                const hasSearch = bodyObj.tools.some(t => t.googleSearch);
+                if (!hasSearch) {
+                    bodyObj.tools.push({ googleSearch: {} });
+                    toolsToAdd.push("googleSearch");
+                } else {
+                    this.logger.info(
+                        `[Proxy] ✅ Client-provided web search detected, skipping force injection. (Google Native)`
+                    );
+                }
+            }
+
+            // Handle URL Context
+            if (this.serverSystem.forceUrlContext) {
+                const hasUrlContext = bodyObj.tools.some(t => t.urlContext);
+                if (!hasUrlContext) {
+                    bodyObj.tools.push({ urlContext: {} });
+                    toolsToAdd.push("urlContext");
+                } else {
+                    this.logger.info(
+                        `[Proxy] ✅ Client-provided URL context detected, skipping force injection. (Google Native)`
+                    );
+                }
+            }
+
+            if (toolsToAdd.length > 0) {
+                this.logger.info(
+                    `[Proxy] ⚠️ Forcing tools enabled, injecting: [${toolsToAdd.join(
+                        ", "
+                    )}] (Google Native)`
+                );
+            }
+        }
 
         return {
             path: cleanPath,
             method: req.method,
             headers: req.headers,
             query_params: req.query || {},
-            body: req.method !== "GET" ? JSON.stringify(req.body) : undefined,
+            body: req.method !== "GET" ? JSON.stringify(bodyObj) : undefined,
             request_id: requestId,
             streaming_mode: this.serverSystem.streamingMode,
         };
