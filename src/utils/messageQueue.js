@@ -42,14 +42,13 @@ class MessageQueue extends EventEmitter {
             }
             const resolver = { reject, resolve };
             this.waitingResolvers.push(resolver);
-            const timeoutId = setTimeout(() => {
+            resolver.timeoutId = setTimeout(() => {
                 const index = this.waitingResolvers.indexOf(resolver);
                 if (index !== -1) {
                     this.waitingResolvers.splice(index, 1);
                     reject(new Error("Queue timeout"));
                 }
             }, timeoutMs);
-            resolver.timeoutId = timeoutId;
         });
     }
 

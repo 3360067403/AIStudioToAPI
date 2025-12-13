@@ -93,7 +93,7 @@ module.exports = {
 
         // ==================== Code Quality ====================
         // Warn about unused variables to prevent dead code
-        "no-unused-vars": ["warn", {
+        "no-unused-vars": ["error", {
             vars: "all",
             args: "after-used",
             ignoreRestSiblings: true,

@@ -38,8 +38,7 @@ class WebRoutes {
         // Format: client, proxy1, proxy2, ...
         // We want the first IP (the original client)
         if (req.headers["x-forwarded-for"]) {
-            const forwarded = req.headers["x-forwarded-for"].split(",")[0].trim();
-            return forwarded;
+            return req.headers["x-forwarded-for"].split(",")[0].trim();
         }
 
         // Fallback to Express's req.ip (works if trust proxy is configured)

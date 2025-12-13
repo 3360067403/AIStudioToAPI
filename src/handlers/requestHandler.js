@@ -195,7 +195,7 @@ class RequestHandler {
         // Translate OpenAI format to Google format
         let googleBody;
         try {
-            googleBody = this.formatConverter.translateOpenAIToGoogle(req.body, model);
+            googleBody = this.formatConverter.translateOpenAIToGoogle(req.body);
         } catch (error) {
             this.logger.error(`[Adapter] OpenAI request translation failed: ${error.message}`);
             return this._sendErrorResponse(
@@ -601,11 +601,9 @@ class RequestHandler {
                     const imagePart = candidate.content.parts[imagePartIndex];
                     const image = imagePart.inlineData;
 
-                    const markdownTextPart = {
+                    candidate.content.parts[imagePartIndex] = {
                         text: `![Generated Image](data:${image.mimeType};base64,${image.data})`,
                     };
-
-                    candidate.content.parts[imagePartIndex] = markdownTextPart;
                     needsReserialization = true;
                 }
             }

@@ -19,7 +19,7 @@ class FormatConverter {
     /**
      * Convert OpenAI request format to Google Gemini format
      */
-    translateOpenAIToGoogle(openaiBody, modelName = "") { // eslint-disable-line no-unused-vars
+    translateOpenAIToGoogle(openaiBody) { // eslint-disable-line no-unused-vars
         this.logger.info("[Adapter] Starting translation of OpenAI request format to Google format...");
 
         let systemInstruction = null;

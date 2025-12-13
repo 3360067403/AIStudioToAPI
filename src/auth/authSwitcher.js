@@ -214,8 +214,6 @@ class AuthSwitcher {
                 this.logger.error(`[Auth] Background account switching task failed: ${error.message}`);
                 if (sendErrorCallback) sendErrorCallback(userMessage);
             }
-
-            return;
         }
     }
 
