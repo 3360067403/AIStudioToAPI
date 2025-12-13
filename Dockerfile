@@ -75,7 +75,7 @@ COPY --chown=node:node scripts ./scripts
 USER node
 
 # Expose application ports
-EXPOSE 7860 9998
+EXPOSE 7860
 
 # Configure runtime environment
 ENV NODE_ENV=production \

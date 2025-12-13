@@ -64,7 +64,10 @@ class WebRoutes {
                 resave: false,
                 saveUninitialized: false,
                 cookie: {
-                    secure: process.env.NODE_ENV === "production",
+                    // Use explicit SECURE_COOKIES env var instead of NODE_ENV
+                    // This allows HTTP access in production if HTTPS is not configured
+                    // Set SECURE_COOKIES=true when using HTTPS/SSL
+                    secure: process.env.SECURE_COOKIES === "true",
                     httpOnly: true,
                     sameSite: "lax",
                     maxAge: 86400000,

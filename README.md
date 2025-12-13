@@ -94,7 +94,7 @@ docker run -d \
 ```
 
 Parameters:
-- `-p 7860:7860`: API server port (both OpenAI and Gemini compatible endpoints)
+- `-p 7860:7860`: API server port (if using a reverse proxy, strongly consider `127.0.0.1:7860`)
 - `-v /path/to/auth:/app/configs/auth`: Mount directory containing auth files
 - `-e API_KEYS`: Comma-separated list of API keys for authentication
 
@@ -132,6 +132,71 @@ Stop the service:
 ```bash
 sudo docker compose down
 ```
+
+##### 🌐 Step 3 (Optional): Nginx Reverse Proxy
+
+If you need to access via a domain name or want unified management at the reverse proxy layer (e.g., configure HTTPS, load balancing, etc.), you can use Nginx. Here's the recommended configuration:
+
+Create an Nginx configuration file `/etc/nginx/sites-available/aistudio-api`:
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;  # IPv6 support
+    server_name your-domain.com;  # Replace with your domain
+
+    # For HTTPS, uncomment the following lines and configure SSL certificates
+    # listen 443 ssl http2;
+    # listen [::]:443 ssl http2;  # IPv6 HTTPS
+    # ssl_certificate /path/to/your/certificate.crt;
+    # ssl_certificate_key /path/to/your/private.key;
+
+    # Client request body size limit (0 = unlimited)
+    client_max_body_size 0;
+
+    location / {
+        # Reverse proxy to Docker container
+        proxy_pass http://127.0.0.1:7860;
+
+        # Critical: Pass real client IP
+        # X-Real-IP: Highest priority, contains the real client IP
+        proxy_set_header X-Real-IP $remote_addr;
+        
+        # X-Forwarded-For: Contains the complete proxy chain
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        
+        # Other necessary proxy headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeout settings (adapted for long-running AI requests)
+        proxy_connect_timeout 600s;
+        proxy_send_timeout 600s;
+        proxy_read_timeout 600s;
+
+        # Disable buffering to support streaming responses
+        proxy_buffering off;
+    }
+}
+```
+
+Enable the configuration and restart Nginx:
+
+```bash
+# Create symbolic link to enable site
+sudo ln -s /etc/nginx/sites-available/aistudio-api /etc/nginx/sites-enabled/
+
+# Test if configuration is correct
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx
+```
+
+**Tips**:
+- If you configured HTTPS, it's recommended to set environment variable `SECURE_COOKIES=true` to enable secure cookies
+- If using HTTP only, keep `SECURE_COOKIES=false` (default) or leave it unset
+- The configuration must correctly set `X-Real-IP` and `X-Forwarded-For` headers to ensure the server can obtain the real client IP
 
 ## 📡 API Usage
 
@@ -198,6 +263,9 @@ curl -X POST http://localhost:7860/v1/chat/completions \
 - `API_KEYS`: Comma-separated list of valid API keys for authentication
 - `PORT`: API server port (default: 7860)
 - `HOST`: Server listening host address (default: 0.0.0.0)
+- `SECURE_COOKIES`: Enable secure cookies (HTTPS only)
+  - Set to `true`: Only HTTPS connections can login (for production with SSL certificates)
+  - Set to `false` or leave unset: Both HTTP and HTTPS can login (default, beginner-friendly)
 
 ### 🧠 Model Configuration
 

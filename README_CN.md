@@ -94,7 +94,7 @@ docker run -d \
 ```
 
 参数说明：
-- `-p 7860:7860`：API 服务器端口（兼容 OpenAI 和 Gemini 端点）
+- `-p 7860:7860`：API 服务器端口（如果使用反向代理，强烈建议改成 127.0.0.1:7860）
 - `-v /path/to/auth:/app/configs/auth`：挂载包含认证文件的目录
 - `-e API_KEYS`：用于身份验证的 API 密钥列表（使用逗号分隔）
 
@@ -132,6 +132,71 @@ sudo docker compose logs -f
 ```bash
 sudo docker compose down
 ```
+
+##### 🌐 步骤 3（可选）：使用 Nginx 反向代理
+
+如果需要通过域名访问或希望在反向代理层统一管理（例如配置 HTTPS、负载均衡等），可以使用 Nginx。以下是推荐的配置：
+
+创建 Nginx 配置文件 `/etc/nginx/sites-available/aistudio-api`：
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;  # IPv6 支持
+    server_name your-domain.com;  # 替换为你的域名
+
+    # 如果使用 HTTPS，取消注释以下行并配置 SSL 证书
+    # listen 443 ssl http2;
+    # listen [::]:443 ssl http2;  # IPv6 HTTPS
+    # ssl_certificate /path/to/your/certificate.crt;
+    # ssl_certificate_key /path/to/your/private.key;
+
+    # 客户端请求体大小的限制（0 = 不限制）
+    client_max_body_size 0;
+
+    location / {
+        # 反向代理到 Docker 容器
+        proxy_pass http://127.0.0.1:7860;
+
+        # X-Real-IP: 传递真实客户端 IP
+        proxy_set_header X-Real-IP $remote_addr;
+        
+        # X-Forwarded-For: 包含完整的代理链
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        
+        # 其他必要的代理头
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # 超时设置（适配长时间运行的 AI 请求）
+        proxy_connect_timeout 600s;
+        proxy_send_timeout 600s;
+        proxy_read_timeout 600s;
+
+        # 禁用缓冲区以支持流式响应
+        proxy_buffering off;
+    }
+}
+```
+
+启用配置并重启 Nginx：
+
+```bash
+# 创建符号链接以启用站点
+sudo ln -s /etc/nginx/sites-available/aistudio-api /etc/nginx/sites-enabled/
+
+# 检查一下配置是否正确
+sudo nginx -t
+
+# 重启 Nginx
+sudo systemctl restart nginx
+```
+
+**提示**：
+
+- 如果配置了 HTTPS，建议设置环境变量 `SECURE_COOKIES=true` 以启用安全 Cookie
+- 如果只使用 HTTP，保持 `SECURE_COOKIES=false`（默认值）或不设置此变量
+- 必须配置 `X-Real-IP` 和 `X-Forwarded-For` 头以确保服务器能够获取真实客户端 IP
 
 ## 📡 使用 API
 
@@ -198,6 +263,9 @@ curl -X POST http://localhost:7860/v1/chat/completions \
 - `API_KEYS`：用于身份验证的有效 API 密钥列表（使用逗号分隔）
 - `PORT`：API 服务器端口（默认：7860）
 - `HOST`：服务器监听主机地址（默认：0.0.0.0）
+- `SECURE_COOKIES`：是否启用安全 Cookie（HTTPS only）
+  - 设置为 `true`：仅 HTTPS 连接可登录（适用于配置了 SSL 证书的生产环境）
+  - 设置为 `false` 或不设置：HTTP 和 HTTPS 都可登录（默认，新手友好）
 
 ### 🧠 模型配置
 
