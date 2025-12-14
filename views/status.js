@@ -81,12 +81,13 @@ const applyLanguage = lang => {
     document.documentElement.lang = lang;
 
     // Update all elements with data-i18n attribute
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (translations[lang][key]) {
-            el.textContent = translations[lang][key];
-        }
-    });
+    document.querySelectorAll('[data-i18n]')
+        .forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations[lang][key]) {
+                el.textContent = translations[lang][key];
+            }
+        });
 
     // Update Vue language state if app is mounted
     if (vueApp) {
@@ -124,6 +125,7 @@ createApp({
     },
     data() {
         return {
+            accountDetails: [],
             currentAuthIndex: -1,
             forceThinkingEnabled: false,
             forceUrlContextEnabled: false,
@@ -136,13 +138,16 @@ createApp({
     },
     methods: {
         handleForceThinkingBeforeChange() {
-            if (this.isUpdating) { return false; }
+            if (this.isUpdating) {
+                return false;
+            }
 
             return new Promise((resolve, reject) => {
                 fetch('/api/toggle-force-thinking', { method: 'POST' })
                     .then(res => res.text())
                     .then(data => {
                         ElementPlus.ElMessage.success(data);
+                        updateContent();
                         resolve(true);
                     })
                     .catch(err => {
@@ -152,7 +157,9 @@ createApp({
             });
         },
         handleForceUrlContextBeforeChange() {
-            if (this.isUpdating) { return false; }
+            if (this.isUpdating) {
+                return false;
+            }
 
             return new Promise((resolve, reject) => {
                 fetch('/api/toggle-force-url-context', { method: 'POST' })
@@ -169,7 +176,9 @@ createApp({
             });
         },
         handleForceWebSearchBeforeChange() {
-            if (this.isUpdating) { return false; }
+            if (this.isUpdating) {
+                return false;
+            }
 
             return new Promise((resolve, reject) => {
                 fetch('/api/toggle-force-web-search', { method: 'POST' })
@@ -186,7 +195,9 @@ createApp({
             });
         },
         handleStreamingModeBeforeChange() {
-            if (this.isUpdating) { return false; }
+            if (this.isUpdating) {
+                return false;
+            }
 
             const newMode = !this.streamingModeReal ? 'real' : 'fake';
 
@@ -216,8 +227,11 @@ createApp({
                 return;
             }
 
+            const targetAccount = this.accountDetails.find(acc => acc.index === targetIndex);
+            const accountSuffix = targetAccount ? ` (${targetAccount.name})` : '';
+
             ElementPlus.ElMessageBox.confirm(
-                this.t('confirmSwitch') + ' #' + targetIndex + '?',
+                this.t('confirmSwitch') + ' #' + targetIndex + accountSuffix + '?',
                 {
                     cancelButtonText: this.lang === 'zh' ? '取消' : 'Cancel',
                     confirmButtonText: this.lang === 'zh' ? '确定' : 'OK',
@@ -225,28 +239,33 @@ createApp({
                     type: 'warning',
                 }
             )
-                .then(() => {
+                .then(async () => {
+                    const notification = ElementPlus.ElNotification({
+                        duration: 0,
+                        message: 'Switching account, please do not refresh the page.',
+                        title: 'Warning',
+                        type: 'warning',
+                    });
                     this.isSwitchingAccount = true;
-                    fetch('/api/switch-account', {
-                        body: JSON.stringify({ targetIndex }),
-                        headers: { 'Content-Type': 'application/json' },
-                        method: 'POST',
-                    })
-                        .then(async res => {
-                            const data = await res.text();
-                            if (res.ok) {
-                                ElementPlus.ElMessage.success(data);
-                            } else {
-                                ElementPlus.ElMessage.error(data);
-                            }
-                        })
-                        .catch(err => {
-                            ElementPlus.ElMessage.error(this.t('settingFailed') + (err.message || err));
-                        })
-                        .finally(() => {
-                            this.isSwitchingAccount = false;
-                            updateContent();
+                    try {
+                        const res = await fetch('/api/switch-account', {
+                            body: JSON.stringify({ targetIndex }),
+                            headers: { 'Content-Type': 'application/json' },
+                            method: 'POST',
                         });
+                        const data = await res.text();
+                        if (res.ok) {
+                            ElementPlus.ElMessage.success(data);
+                        } else {
+                            ElementPlus.ElMessage.error(data);
+                        }
+                    } catch (err) {
+                        ElementPlus.ElMessage.error(this.t('settingFailed') + (err.message || err));
+                    } finally {
+                        this.isSwitchingAccount = false;
+                        notification.close();
+                        updateContent();
+                    }
                 })
                 .catch(e => {
                     if (e !== 'cancel') {
@@ -264,6 +283,7 @@ createApp({
             this.forceWebSearchEnabled = data.status.forceWebSearch.includes('Enabled');
             this.forceUrlContextEnabled = data.status.forceUrlContext.includes('Enabled');
             this.currentAuthIndex = data.status.currentAuthIndex;
+            this.accountDetails = data.status.accountDetails || [];
             this.$nextTick(() => {
                 this.isUpdating = false;
             });
@@ -299,54 +319,61 @@ createApp({
             }
         },
     },
-}).use(ElementPlus).mount('#app');
+})
+    .use(ElementPlus)
+    .mount('#app');
 
 const updateContent = () => {
     const dot = document.querySelector('.dot');
-    fetch('/api/status').then(r => {
-        if (r.redirected) {
-            window.location.href = r.url;
-            return Promise.reject('Redirecting to login');
-        }
-        return r.json();
-    }).then(data => {
-        // Update dot to green when connected
-        dot.className = 'dot status-running';
+    fetch('/api/status')
+        .then(r => {
+            if (r.redirected) {
+                window.location.href = r.url;
+                return Promise.reject('Redirecting to login');
+            }
+            return r.json();
+        })
+        .then(data => {
+            // Update dot to green when connected
+            dot.className = 'dot status-running';
 
-        // Update Vue switch states
-        if (vueApp && vueApp.updateSwitchStates) {
-            vueApp.updateSwitchStates(data);
-        }
+            // Update Vue switch states
+            if (vueApp && vueApp.updateSwitchStates) {
+                vueApp.updateSwitchStates(data);
+            }
 
-        const statusPre = document.querySelector('#status-section pre');
-        const accountDetailsHtml = data.status.accountDetails.map(acc =>
-            '<span class="label" style="padding-left: 20px;">' + t('account') + ' ' + acc.index + '</span>: ' + acc.name
-        ).join('\n');
-        statusPre.innerHTML
-            = '<span class="label">' + t('serviceStatus') + '</span>: <span class="status-ok">' + t('running') + '</span>\n'
-            + '<span class="label">' + t('browserConnection') + '</span>: <span class="' + (data.status.browserConnected ? 'status-ok' : 'status-error') + '">' + data.status.browserConnected + '</span>\n'
-            + '--- ' + t('serviceConfig') + ' ---\n'
-            + '<span class="label">' + t('streamingMode') + '</span>: ' + data.status.streamingMode + '\n'
-            + '<span class="label">' + t('forceThinking') + '</span>: ' + data.status.forceThinking + '\n'
-            + '<span class="label">' + t('forceWebSearch') + '</span>: ' + data.status.forceWebSearch + '\n'
-            + '<span class="label">' + t('forceUrlContext') + '</span>: ' + data.status.forceUrlContext + '\n'
-            + '<span class="label">' + t('immediateSwitchCodes') + '</span>: ' + data.status.immediateSwitchStatusCodes + '\n'
-            + '<span class="label">' + t('apiKey') + '</span>: ' + data.status.apiKeySource + '\n'
-            + '--- ' + t('accountStatus') + ' ---\n'
-            + '<span class="label">' + t('currentAccount') + '</span>: #' + data.status.currentAuthIndex + ' (' + data.status.currentAccountName + ')\n'
-            + + '<span class="label">' + t('usageCount') + '</span>: ' + data.status.usageCount + '\n'
-            + '<span class="label">' + t('consecutiveFailures') + '</span>: ' + data.status.failureCount + '\n'
-            + '<span class="label">' + t('totalScanned') + '</span>: ' + data.status.initialIndices + '\n'
-            + accountDetailsHtml + '\n'
-            + '<span class="label">' + t('formatErrors') + '</span>: ' + data.status.invalidIndices;
+            const statusPre = document.querySelector('#status-section pre');
+            const accountDetailsHtml = data.status.accountDetails.map(acc =>
+                '<span class="label" style="padding-left: 20px;">' + t('account') + ' ' + acc.index + '</span>: ' + acc.name
+            )
+                .join('\n');
+            statusPre.innerHTML
+                = '<span class="label">' + t('serviceStatus') + '</span>: <span class="status-ok">' + t('running') + '</span>\n'
+                + '<span class="label">' + t('browserConnection') + '</span>: <span class="' + (data.status.browserConnected ? 'status-ok' : 'status-error') + '">' + data.status.browserConnected + '</span>\n'
+                + '--- ' + t('serviceConfig') + ' ---\n'
+                + '<span class="label">' + t('streamingMode') + '</span>: ' + data.status.streamingMode + '\n'
+                + '<span class="label">' + t('forceThinking') + '</span>: ' + data.status.forceThinking + '\n'
+                + '<span class="label">' + t('forceWebSearch') + '</span>: ' + data.status.forceWebSearch + '\n'
+                + '<span class="label">' + t('forceUrlContext') + '</span>: ' + data.status.forceUrlContext + '\n'
+                + '<span class="label">' + t('immediateSwitchCodes') + '</span>: ' + data.status.immediateSwitchStatusCodes + '\n'
+                + '<span class="label">' + t('apiKey') + '</span>: ' + data.status.apiKeySource + '\n'
+                + '--- ' + t('accountStatus') + ' ---\n'
+                + '<span class="label">' + t('currentAccount') + '</span>: #' + data.status.currentAuthIndex + ' (' + data.status.currentAccountName + ')\n'
+                + +'<span class="label">' + t('usageCount') + '</span>: ' + data.status.usageCount + '\n'
+                + '<span class="label">' + t('consecutiveFailures') + '</span>: ' + data.status.failureCount + '\n'
+                + '<span class="label">' + t('totalScanned') + '</span>: ' + data.status.initialIndices + '\n'
+                + accountDetailsHtml + '\n'
+                + '<span class="label">' + t('formatErrors') + '</span>: ' + data.status.invalidIndices;
 
-        const logContainer = document.getElementById('log-container');
-        const logTitle = document.querySelector('#log-section h2');
-        const isScrolledToBottom = logContainer.scrollHeight - logContainer.clientHeight <= logContainer.scrollTop + 1;
-        logTitle.innerHTML = '<span data-i18n="realtimeLogs">' + t('realtimeLogs') + '</span> (<span data-i18n="latestEntries">' + t('latestEntries') + '</span> ' + data.logCount + ' <span data-i18n="entries">' + t('entries') + '</span>)';
-        logContainer.innerText = data.logs;
-        if (isScrolledToBottom) { logContainer.scrollTop = logContainer.scrollHeight; }
-    })
+            const logContainer = document.getElementById('log-container');
+            const logTitle = document.querySelector('#log-section h2');
+            const isScrolledToBottom = logContainer.scrollHeight - logContainer.clientHeight <= logContainer.scrollTop + 1;
+            logTitle.innerHTML = '<span data-i18n="realtimeLogs">' + t('realtimeLogs') + '</span> (<span data-i18n="latestEntries">' + t('latestEntries') + '</span> ' + data.logCount + ' <span data-i18n="entries">' + t('entries') + '</span>)';
+            logContainer.innerText = data.logs;
+            if (isScrolledToBottom) {
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        })
         .catch(err => {
             if (err === 'Redirecting to login') {
                 console.log(err);
