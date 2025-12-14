@@ -1,4 +1,4 @@
-# AIStudio To API
+# Google AI Studio to API Adapter
 
 中文文档 | [English](README.md)
 

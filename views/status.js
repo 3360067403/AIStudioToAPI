@@ -28,7 +28,7 @@ const translations = {
         heading: 'Proxy Service Status',
         immediateSwitchCodes: 'Immediate Switch (Codes)',
         latestEntries: 'Latest',
-
+        logout: 'Logout',
         operationInProgress: 'Operation in progress...',
         realtimeLogs: 'Real-time Logs',
         running: 'Running',
@@ -36,6 +36,7 @@ const translations = {
         serviceStatus: 'Service Status',
         settingFailed: 'Setting failed: ',
         streamingMode: 'Streaming Mode',
+        switchLanguage: 'Switch Language',
         title: 'Google AI Studio Proxy - Service Status',
         totalScanned: 'Total Scanned Accounts',
         usageCount: 'Usage Count',
@@ -60,6 +61,7 @@ const translations = {
         heading: '代理服务状态',
         immediateSwitchCodes: '立即切换（代码）',
         latestEntries: '最新',
+        logout: '登出',
         operationInProgress: '操作进行中...',
         realtimeLogs: '实时日志',
         running: '运行中',
@@ -67,6 +69,7 @@ const translations = {
         serviceStatus: '服务状态',
         settingFailed: '设置失败：',
         streamingMode: '流式模式',
+        switchLanguage: '切换语言',
         title: 'Google AI Studio 代理 - 服务状态',
         totalScanned: '已扫描账户总数',
         usageCount: '使用次数',
@@ -232,6 +235,43 @@ createApp({
                     });
             });
         },
+        handleLogout() {
+            const { ElMessageBox, ElMessage } = ElementPlus;
+            ElMessageBox.confirm(
+                this.lang === 'zh' ? '确定要登出吗？' : 'Are you sure you want to logout?',
+                {
+                    cancelButtonText: this.lang === 'zh' ? '取消' : 'Cancel',
+                    confirmButtonText: this.lang === 'zh' ? '确定' : 'OK',
+                    lockScroll: false,
+                    type: 'warning',
+                }
+            )
+                .then(() => {
+                    fetch('/logout', {
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        method: 'POST',
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                ElMessage.success(this.lang === 'zh' ? '登出成功' : 'Logout successful');
+                                setTimeout(() => {
+                                    window.location.href = '/login';
+                                }, 500);
+                            } else {
+                                ElMessage.error(this.lang === 'zh' ? '登出失败' : 'Logout failed');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Logout error:', err);
+                            ElMessage.error(this.lang === 'zh' ? '登出时发生错误' : 'Error during logout');
+                        });
+                })
+                .catch(() => {
+                    // User canceled, do nothing
+                });
+        },
         handleStreamingModeBeforeChange() {
             if (this.isUpdating) {
                 return false;
@@ -313,6 +353,10 @@ createApp({
         },
         t(key) {
             return translations[this.lang][key] || key;
+        },
+        toggleLanguage() {
+            const newLang = this.lang === 'en' ? 'zh' : 'en';
+            applyLanguage(newLang);
         },
         updateSwitchStates(data) {
             this.isUpdating = true;

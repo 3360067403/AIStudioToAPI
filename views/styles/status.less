@@ -136,24 +136,19 @@ pre {
     }
 }
 
-.lang-switcher {
+// Desktop buttons (original position in container)
+.desktop-btn {
     align-items: center;
     background: transparent;
     border: none;
     color: @text-secondary;
     cursor: pointer;
-    display: flex;
+    display: none; // Hidden on mobile by default
     justify-content: center;
     padding: @spacing-xs;
     position: absolute;
-    right: 70px;
     top: 35px;
     transition: all @transition-fast;
-
-    &:hover {
-        color: @primary-color;
-        transform: scale(1.1);
-    }
 
     &:disabled {
         cursor: not-allowed;
@@ -162,27 +157,52 @@ pre {
 
     svg {
         display: block;
+    }
+
+    &.lang-switcher {
+        right: 70px;
+
+        &:hover:not(:disabled) {
+            color: @primary-color;
+            transform: scale(1.1);
+        }
+    }
+
+    &.logout-button {
+        right: @spacing-lg;
+
+        &:hover:not(:disabled) {
+            color: @error-color;
+            transform: scale(1.1);
+        }
     }
 }
 
-.logout-button {
+// Mobile floating action buttons
+.mobile-only {
+    display: block;
+}
+
+.floating-actions {
     align-items: center;
-    background: transparent;
-    border: none;
-    color: @text-secondary;
+    display: flex;
+    flex-direction: column;
+    gap: @affix-button-gap;
+}
+
+.floating-btn {
+    align-items: center;
+    backdrop-filter: blur(10px);
+    background: @affix-button-bg;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: @border-radius-circle;
+    box-shadow: @affix-button-shadow;
     cursor: pointer;
     display: flex;
+    height: @affix-button-size;
     justify-content: center;
-    padding: @spacing-xs;
-    position: absolute;
-    right: @spacing-lg;
-    top: 35px;
     transition: all @transition-fast;
-
-    &:hover {
-        color: @error-color;
-        transform: scale(1.1);
-    }
+    width: @affix-button-size;
 
     &:disabled {
         cursor: not-allowed;
@@ -191,6 +211,39 @@ pre {
 
     svg {
         display: block;
+    }
+
+    &.lang-switcher {
+        color: @text-secondary;
+
+        &:hover:not(:disabled) {
+            background: @primary-color;
+            box-shadow: @affix-button-hover-shadow;
+            color: @background-white;
+            transform: scale(1.05);
+        }
+    }
+
+    &.logout-button {
+        color: @text-secondary;
+
+        &:hover:not(:disabled) {
+            background: @error-color;
+            box-shadow: @affix-button-hover-shadow;
+            color: @background-white;
+            transform: scale(1.05);
+        }
+    }
+}
+
+// Media query: Desktop (>=768px)
+@media (width >= 768px) {
+    .mobile-only {
+        display: none !important;
+    }
+
+    .desktop-btn {
+        display: flex;
     }
 }
 
