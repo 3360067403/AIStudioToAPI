@@ -214,8 +214,8 @@
                         })
                             .then(res => res.json())
                             .then(data => {
-                                const message = this.t(data.code);
-                                if (data.code === 'LOGOUT_SUCCESS') {
+                                const message = this.t(data.message);
+                                if (data.message === 'logoutSuccess') {
                                     ElMessage.success(message);
                                     setTimeout(() => {
                                         window.location.href = '/login';
@@ -242,7 +242,7 @@
                     const res = await fetch(apiUrl, { method: 'PUT' });
                     const data = await res.json();
                     if (res.ok) {
-                        const message = this.t(data.code, {
+                        const message = this.t(data.message, {
                             setting: this.t(settingName),
                             value: this.t(String(data.value)),
                         });
@@ -250,7 +250,7 @@
                         window.updateContent?.();
                         return true;
                     } else {
-                        const message = this.t(data.code, data);
+                        const message = this.t(data.message, data);
                         ElementPlus.ElMessage.error(message);
                         return false;
                     }
@@ -274,7 +274,7 @@
                     });
                     const data = await res.json();
                     if (res.ok) {
-                        const message = this.t(data.code, {
+                        const message = this.t(data.message, {
                             setting: this.t('streamingMode'),
                             value: this.t(data.value),
                         });
@@ -282,7 +282,7 @@
                         window.updateContent?.();
                         return true;
                     } else {
-                        const message = this.t(data.code, data);
+                        const message = this.t(data.message, data);
                         ElementPlus.ElMessage.error(message);
                         return false;
                     }
@@ -326,7 +326,7 @@
                                 method: 'PUT',
                             });
                             const data = await res.json();
-                            const message = this.t(data.code, data);
+                            const message = this.t(data.message, data);
                             if (res.ok) {
                                 ElementPlus.ElMessage.success(message);
                             } else {

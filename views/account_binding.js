@@ -13,7 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('unload', () => {
         // Use sendBeacon for reliable, asynchronous, non-blocking cleanup requests on page exit.
         if (navigator.sendBeacon) {
-            navigator.sendBeacon('/api/cleanup_vnc', new Blob());
+            // Note: sendBeacon only supports POST, but we indicate DELETE intent via custom header if possible
+            // For simplicity, we'll keep the beacon as-is since the server endpoint will handle cleanup
+            // Alternative: Use fetch with keepalive flag for DELETE method
+            fetch('/api/vnc/sessions', {
+                keepalive: true,
+                method: 'DELETE',
+            }).catch(() => {});
         }
     });
 
@@ -29,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const initialHeight = vncContainer.clientHeight;
             console.log(`[VNC] Sending initial dimensions to backend: ${initialWidth}x${initialHeight}`);
 
-            fetch('/api/start_vnc_session', {
+            fetch('/api/vnc/sessions', {
                 body: JSON.stringify({ height: initialHeight, width: initialWidth }),
                 headers: { 'Content-Type': 'application/json' },
                 method: 'POST',
@@ -147,18 +153,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const body = accountName ? JSON.stringify({ accountName }) : null;
         const headers = accountName ? { 'Content-Type': 'application/json' } : {};
 
-        fetch('/api/save_auth', {
+        fetch('/api/vnc/auth', {
             body,
             headers,
             method: 'POST',
         })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
+                if (data.message === 'vncAuthSaveSuccess') {
                     alert(`Account "${data.accountName}" saved successfully!`);
                     sessionStorage.setItem('newAuthInfo', JSON.stringify(data));
                     window.location.href = '/';
-                } else if (data.reason === 'email_fetch_failed') {
+                } else if (data.message === 'errorVncEmailFetchFailed') {
                     const manualAccountName = prompt('Could not automatically detect email. Please enter a name for this account:', '');
                     if (manualAccountName) {
                         saveAuth(manualAccountName);

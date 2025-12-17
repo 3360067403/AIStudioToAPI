@@ -82,7 +82,7 @@ RUN npm run build:css
 # Remove dev dependencies after build to reduce image size
 RUN npm prune --omit=dev && npm cache clean --force
 
-# Switch to root user
+# TODO: Temporarily use the root user, and in the future we will switch to the node user
 USER root
 
 # Expose application ports

@@ -214,12 +214,12 @@ class WebRoutes {
                 if (err) {
                     this.logger.error(`[Auth] Session destruction failed for IP ${ip}: ${err.message}`);
                     return res.status(500)
-                        .json({ code: "LOGOUT_FAILED" });
+                        .json({ message: "logoutFailed" });
                 }
                 this.logger.info(`[Auth] User logged out from IP: ${ip}`);
                 res.clearCookie("connect.sid");
                 res.status(200)
-                    .json({ code: "LOGOUT_SUCCESS" });
+                    .json({ message: "logoutSuccess" });
             });
         });
     }
@@ -316,9 +316,9 @@ class WebRoutes {
             res.json(this._getStatusData());
         });
 
-        app.post("/api/start_vnc_session", isAuthenticated, this.startVncSession.bind(this));
-        app.post("/api/save_auth", isAuthenticated, this.saveAuthFile.bind(this));
-        app.post("/api/cleanup_vnc", async (req, res) => {
+        app.post("/api/vnc/sessions", isAuthenticated, this.startVncSession.bind(this));
+        app.post("/api/vnc/auth", isAuthenticated, this.saveAuthFile.bind(this));
+        app.delete("/api/vnc/sessions", async (req, res) => {
             this.logger.info("[VNC] Received cleanup request from client (beacon).");
             await this._cleanupVncSession("client_beacon");
             res.sendStatus(204); // No content
@@ -335,26 +335,26 @@ class WebRoutes {
                         targetIndex
                     );
                     if (result.success) {
-                        res.status(200).json({ code: "ACCOUNT_SWITCH_SUCCESS", newIndex: result.newIndex });
+                        res.status(200).json({ message: "accountSwitchSuccess", newIndex: result.newIndex });
                     } else {
-                        res.status(400).json({ code: "ACCOUNT_SWITCH_FAILED", reason: result.reason });
+                        res.status(400).json({ message: "accountSwitchFailed", reason: result.reason });
                     }
                 } else {
                     this.logger.info("[WebUI] Received manual request to switch to next account...");
                     if (this.serverSystem.authSource.availableIndices.length <= 1) {
-                        return res.status(400).json({ code: "ACCOUNT_SWITCH_CANCELLED_SINGLE" });
+                        return res.status(400).json({ message: "accountSwitchCancelledSingle" });
                     }
                     const result = await this.serverSystem.requestHandler._switchToNextAuth();
                     if (result.success) {
-                        res.status(200).json({ code: "ACCOUNT_SWITCH_SUCCESS_NEXT", newIndex: result.newIndex });
+                        res.status(200).json({ message: "accountSwitchSuccessNext", newIndex: result.newIndex });
                     } else if (result.fallback) {
-                        res.status(200).json({ code: "ACCOUNT_SWITCH_FALLBACK", newIndex: result.newIndex });
+                        res.status(200).json({ message: "accountSwitchFallback", newIndex: result.newIndex });
                     } else {
-                        res.status(409).json({ code: "ACCOUNT_SWITCH_SKIPPED", reason: result.reason });
+                        res.status(409).json({ message: "accountSwitchSkipped", reason: result.reason });
                     }
                 }
             } catch (error) {
-                res.status(500).json({ code: "ACCOUNT_SWITCH_FATAL", error: error.message });
+                res.status(500).json({ error: error.message, message: "accountSwitchFatal" });
             }
         });
 
@@ -364,17 +364,17 @@ class WebRoutes {
             const currentAuthIndex = this.serverSystem.requestHandler.currentAuthIndex;
 
             if (!Number.isInteger(targetIndex)) {
-                return res.status(400).json({ code: "ERROR_INVALID_INDEX" });
+                return res.status(400).json({ message: "errorInvalidIndex" });
             }
 
             if (targetIndex === currentAuthIndex) {
-                return res.status(400).json({ code: "ERROR_DELETE_CURRENT_ACCOUNT" });
+                return res.status(400).json({ message: "errorDeleteCurrentAccount" });
             }
 
             const { authSource } = this.serverSystem;
 
             if (!authSource.availableIndices.includes(targetIndex)) {
-                return res.status(404).json({ code: "ERROR_ACCOUNT_NOT_FOUND", index: targetIndex });
+                return res.status(404).json({ index: targetIndex, message: "errorAccountNotFound" });
             }
 
             try {
@@ -382,10 +382,10 @@ class WebRoutes {
                 this.logger.warn(
                     `[WebUI] Account #${targetIndex} deleted via web interface. Current account: #${currentAuthIndex}`
                 );
-                res.status(200).json({ code: "ACCOUNT_DELETE_SUCCESS", index: targetIndex });
+                res.status(200).json({ index: targetIndex, message: "accountDeleteSuccess" });
             } catch (error) {
                 this.logger.error(`[WebUI] Failed to delete account #${targetIndex}: ${error.message}`);
-                return res.status(500).json({ code: "ACCOUNT_DELETE_FAILED", error: error.message });
+                return res.status(500).json({ error: error.message, message: "accountDeleteFailed" });
             }
         });
 
@@ -396,9 +396,9 @@ class WebRoutes {
                 this.logger.info(
                     `[WebUI] Streaming mode switched by authenticated user to: ${this.serverSystem.streamingMode}`
                 );
-                res.status(200).json({ code: "SETTING_UPDATE_SUCCESS", setting: "streamingMode", value: newMode });
+                res.status(200).json({ message: "settingUpdateSuccess", setting: "streamingMode", value: newMode });
             } else {
-                res.status(400).json({ code: "ERROR_INVALID_MODE" });
+                res.status(400).json({ message: "errorInvalidMode" });
             }
         });
 
@@ -406,21 +406,21 @@ class WebRoutes {
             this.serverSystem.forceThinking = !this.serverSystem.forceThinking;
             const statusText = this.serverSystem.forceThinking;
             this.logger.info(`[WebUI] Force thinking toggle switched to: ${statusText}`);
-            res.status(200).json({ code: "SETTING_UPDATE_SUCCESS", setting: "forceThinking", value: statusText });
+            res.status(200).json({ message: "settingUpdateSuccess", setting: "forceThinking", value: statusText });
         });
 
         app.put("/api/settings/force-web-search", isAuthenticated, (req, res) => {
             this.serverSystem.forceWebSearch = !this.serverSystem.forceWebSearch;
             const statusText = this.serverSystem.forceWebSearch;
             this.logger.info(`[WebUI] Force web search toggle switched to: ${statusText}`);
-            res.status(200).json({ code: "SETTING_UPDATE_SUCCESS", setting: "forceWebSearch", value: statusText });
+            res.status(200).json({ message: "settingUpdateSuccess", setting: "forceWebSearch", value: statusText });
         });
 
         app.put("/api/settings/force-url-context", isAuthenticated, (req, res) => {
             this.serverSystem.forceUrlContext = !this.serverSystem.forceUrlContext;
             const statusText = this.serverSystem.forceUrlContext;
             this.logger.info(`[WebUI] Force URL context toggle switched to: ${statusText}`);
-            res.status(200).json({ code: "SETTING_UPDATE_SUCCESS", setting: "forceUrlContext", value: statusText });
+            res.status(200).json({ message: "settingUpdateSuccess", setting: "forceUrlContext", value: statusText });
         });
     }
 
@@ -450,13 +450,13 @@ class WebRoutes {
         if (process.platform === "win32") {
             this.logger.error("[VNC] VNC feature is not supported on Windows.");
             return res.status(501)
-                .json({ code: "ERROR_VNC_UNSUPPORTED_OS" });
+                .json({ message: "errorVncUnsupportedOs" });
         }
 
         if (this.isVncOperationInProgress) {
             this.logger.warn("[VNC] A VNC operation is already in progress. Please wait.");
             return res.status(429)
-                .json({ code: "ERROR_VNC_IN_PROGRESS" });
+                .json({ message: "errorVncInProgress" });
         }
 
         this.isVncOperationInProgress = true;
@@ -631,7 +631,7 @@ class WebRoutes {
             this.logger.error(`[VNC] Failed to start VNC session: ${error.message}`);
             await this._cleanupVncSession("startup_error");
             res.status(500)
-                .json({ code: "ERROR_VNC_START_FAILED" });
+                .json({ message: "errorVncStartFailed" });
         } finally {
             this.isVncOperationInProgress = false;
         }
@@ -640,7 +640,7 @@ class WebRoutes {
     async saveAuthFile(req, res) {
         if (!this.vncSession || !this.vncSession.context) {
             return res.status(400)
-                .json({ code: "ERROR_VNC_NO_SESSION" });
+                .json({ message: "errorVncNoSession" });
         }
 
         let { accountName } = req.body;
@@ -676,7 +676,7 @@ class WebRoutes {
             } catch (e) {
                 this.logger.warn(`[VNC] Could not automatically detect email: ${e.message}. Requesting manual input from client.`);
                 return res.status(400)
-                    .json({ code: "ERROR_VNC_EMAIL_FETCH_FAILED" });
+                    .json({ message: "errorVncEmailFetchFailed" });
             }
         }
 
@@ -705,8 +705,8 @@ class WebRoutes {
                 accountName,
                 accountNameMap: Object.fromEntries(this.serverSystem.authSource.accountNameMap),
                 availableIndices: this.serverSystem.authSource.availableIndices,
-                code: "VNC_AUTH_SAVE_SUCCESS",
                 filePath: newAuthFilePath,
+                message: "vncAuthSaveSuccess",
                 newAuthIndex: nextAuthIndex,
             });
 
@@ -717,7 +717,7 @@ class WebRoutes {
         } catch (error) {
             this.logger.error(`[VNC] Failed to save auth file: ${error.message}`);
             res.status(500)
-                .json({ code: "ERROR_VNC_SAVE_FAILED", error: error.message });
+                .json({ error: error.message, message: "errorVncSaveFailed" });
         }
     }
 
