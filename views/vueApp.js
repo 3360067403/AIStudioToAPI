@@ -141,7 +141,7 @@
         },
         methods: {
             addUser() {
-                window.location.href = '/account_binding';
+                window.location.href = '/auth';
             },
             deleteUser() {
                 const targetIndex = this.selectedAccount;

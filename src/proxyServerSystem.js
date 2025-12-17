@@ -126,7 +126,7 @@ class ProxyServerSystem extends EventEmitter {
             // Note: /, /api/status use session authentication instead
             const whitelistPaths = ["/", "/favicon.ico", "/login", "/health", "/api/status", "/api/accounts/current",
                 "/api/settings/streaming-mode", "/api/settings/force-thinking", "/api/settings/force-web-search",
-                "/api/settings/force-url-context", "/account_binding"];
+                "/api/settings/force-url-context", "/auth"];
 
             // Whitelist path patterns (regex)
             const whitelistPatterns = [
@@ -143,7 +143,7 @@ class ProxyServerSystem extends EventEmitter {
                 "/vueApp.js",
                 "/utils/",
                 "/locales/",
-                "/account_binding.js",
+                "/auth.js",
             ];
             const isStaticFile = staticPrefixes.some(prefix => req.path.startsWith(prefix) || req.path === prefix);
             const isWhitelistedPattern = whitelistPatterns.some(pattern => pattern.test(req.path));

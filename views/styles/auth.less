@@ -1,0 +1,232 @@
+/**
+ * File: auth.less
+ * Description: Styles for the authentication/account binding page with VNC interface
+ *
+ * Maintainers: iBenzene, bbbugg
+ * Original Author: Ellinav
+ */
+
+@import 'variables.less';
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    background: @vnc-surface-gradient;
+    font-family: @font-family-sans;
+    margin: 0;
+    overflow: hidden;
+}
+
+[v-cloak] {
+    display: none;
+}
+
+#app {
+    height: 100%;
+}
+
+#vnc-container {
+    background: @vnc-surface-gradient;
+    inset: 0;
+    position: fixed;
+}
+
+#vnc-surface {
+    height: 100%;
+    width: 100%;
+}
+
+#vnc-surface canvas {
+    display: block;
+    height: 100% !important;
+    width: 100% !important;
+}
+
+.vnc-status {
+    align-items: center;
+    backdrop-filter: blur(6px);
+    background: @vnc-overlay-bg;
+    color: @vnc-overlay-text;
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: @spacing-xl;
+    position: absolute;
+    text-align: center;
+
+    &.is-error .vnc-status-title {
+        color: @error-color;
+    }
+}
+
+.vnc-status-card {
+    background: @vnc-overlay-card-bg;
+    border: 1px solid @vnc-overlay-border;
+    border-radius: @border-radius-lg;
+    box-shadow: @vnc-overlay-shadow;
+    max-width: 520px;
+    padding: @spacing-lg @spacing-xl;
+}
+
+.vnc-status-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: @spacing-sm;
+}
+
+.vnc-status-detail {
+    color: @vnc-overlay-muted;
+    font-size: @font-size-small;
+    line-height: 1.5;
+
+    code {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: @border-radius-sm;
+        font-family: @font-family-mono;
+        padding: 2px 6px;
+    }
+}
+
+.vnc-status-note {
+    display: block;
+    margin-top: @spacing-sm;
+}
+
+.vnc-status-reload {
+    background: @primary-color;
+    border: none;
+    border-radius: @border-radius-md;
+    color: @background-white;
+    cursor: pointer;
+    font-size: @font-size-base;
+    margin-top: @spacing-md;
+    padding: @spacing-sm @spacing-lg;
+    transition: background-color @transition-fast;
+
+    &:hover {
+        background: @primary-hover-color;
+    }
+}
+
+.vnc-affix {
+    position: fixed !important;
+    z-index: @z-index-affix;
+}
+
+.vnc-icon-button {
+    align-items: center;
+    background: @vnc-toolbar-bg;
+    border: 1px solid @vnc-toolbar-border;
+    border-radius: @border-radius-circle;
+    box-shadow: @vnc-toolbar-shadow;
+    color: @text-secondary;
+    cursor: pointer;
+    display: inline-flex;
+    height: @vnc-button-size;
+    justify-content: center;
+    padding: 0;
+    transition: transform @transition-fast, background-color @transition-fast, box-shadow @transition-fast;
+    width: @vnc-button-size;
+
+    &:hover:not(:disabled) {
+        background: @vnc-toolbar-hover-bg;
+        color: @text-primary;
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    svg {
+        display: block;
+        height: @vnc-icon-size;
+        width: @vnc-icon-size;
+    }
+}
+
+.vnc-icon-button svg path {
+    fill: currentcolor;
+}
+
+.vnc-action-bar {
+    align-items: center;
+    backdrop-filter: blur(14px);
+    background: @vnc-toolbar-bg;
+    border: 1px solid @vnc-toolbar-border;
+    border-radius: @vnc-bar-radius;
+    box-shadow: @vnc-toolbar-shadow;
+    display: flex;
+    gap: @vnc-bar-gap;
+    padding: @vnc-bar-padding @vnc-bar-padding;
+}
+
+.vnc-bar-button {
+    align-items: center;
+    background: transparent;
+    border: none;
+    border-radius: @border-radius-circle;
+    color: @text-secondary;
+    cursor: pointer;
+    display: inline-flex;
+    height: @vnc-button-size;
+    justify-content: center;
+    padding: 0;
+    transition: background-color @transition-fast, transform @transition-fast;
+    width: @vnc-button-size;
+
+    &:hover:not(:disabled) {
+        background: rgba(0, 0, 0, 0.06);
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    &.is-save {
+        color: @primary-color;
+    }
+
+    svg {
+        display: block;
+        height: @vnc-icon-size;
+        width: @vnc-icon-size;
+    }
+
+    svg path {
+        fill: currentcolor;
+    }
+}
+
+.vnc-dialog .el-dialog {
+    border-radius: @border-radius-lg;
+}
+
+.vnc-dialog-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.vnc-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: @spacing-sm;
+}
+
+.vnc-dialog-text {
+    color: @text-primary;
+    margin: 0;
+}
+
+@media (width <= 520px) {
+    .vnc-action-bar {
+        gap: @spacing-sm;
+        padding: @spacing-xs @spacing-md;
+    }
+}

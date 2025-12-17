@@ -12,7 +12,7 @@
         "save-auth": "node scripts/saveAuth.js",
         "setup-auth": "scripts\\setupAuth.bat",
         "prepare": "husky install",
-        "build:css": "lessc --clean-css views/styles/login.less public/styles/login.css && lessc --clean-css views/styles/status.less public/styles/status.css && lessc --clean-css views/styles/account_binding.less public/styles/account_binding.css && lessc --clean-css views/styles/nav.less public/styles/nav.css",
+        "build:css": "lessc --clean-css views/styles/login.less public/styles/login.css && lessc --clean-css views/styles/status.less public/styles/status.css && lessc --clean-css views/styles/auth.less public/styles/auth.css && lessc --clean-css views/styles/nav.less public/styles/nav.css",
         "watch:css": "npm run build:css && nodemon --watch views/styles/*.less --exec \"npm run build:css\"",
         "prebuild": "npm run build:css",
         "lint": "eslint . && stylelint \"views/**/*.{css,less}\"",

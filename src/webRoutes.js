@@ -279,8 +279,8 @@ class WebRoutes {
                 .send(this._generateStatusPage());
         });
 
-        app.get("/account_binding", isAuthenticated, (req, res) => {
-            const accountBindingHtml = this._loadTemplate("account_binding.html");
+        app.get("/auth", isAuthenticated, (req, res) => {
+            const accountBindingHtml = this._loadTemplate("auth.html");
             res.send(accountBindingHtml);
         });
 
