@@ -13,43 +13,130 @@
 
     const app = createApp({
         computed: {
+            accountDetailsHtml() {
+                this.lang;
+                const initialIndices = this.initialIndicesRaw || [];
+                if (initialIndices.length === 0) {
+                    return '';
+                }
+
+                const invalidIndices = this.invalidIndicesRaw || [];
+                const accountNameMap = new Map(Object.entries(this.accountNameMap || {}));
+
+                return initialIndices
+                    .map(index => {
+                        const isInvalid = invalidIndices.includes(index);
+                        const name = isInvalid
+                            ? this.t('jsonFormatError')
+                            : accountNameMap.get(String(index)) || this.t('unnamedAccount');
+
+                        const escapedName = name.replace(/[&<>"'/]/g, char => ({
+                            '"': '&quot;',
+                            '&': '&amp;',
+                            "'": '&#x27;',
+                            '/': '&#x2F;',
+                            '<': '&lt;',
+                            '>': '&gt;',
+                        }[char]));
+
+                        return `<span class="label" style="padding-left: 20px;">${this.t('account')} ${index}</span>: ${escapedName}`;
+                    })
+                    .join('\n');
+            },
+            apiKeySourceText() {
+                this.lang;
+                return this.t(this.apiKeySource.toLowerCase()) || this.apiKeySource;
+            },
+            browserConnectedClass() {
+                return this.browserConnected ? 'status-ok' : 'status-error';
+            },
+            browserConnectedText() {
+                this.lang;
+                return this.browserConnected ? this.t('running') : this.t('disconnected');
+            },
             currentAccountName() {
+                this.lang;
                 if (this.currentAuthIndex === null || this.currentAuthIndex < 0) {
                     return this.t('noActiveAccount');
                 }
                 const account = this.accountDetails.find(acc => acc.index === this.currentAuthIndex);
                 return account ? account.name : this.t('noActiveAccount');
             },
+            forceThinkingIcon() {
+                return this.forceThinkingEnabled ? '✅' : '❌';
+            },
             forceThinkingText() {
-                return this.forceThinkingEnabled ? 'true' : 'false';
+                this.lang;
+                return this.forceThinkingEnabled ? this.t('enabled') : this.t('disabled');
+            },
+            forceUrlContextIcon() {
+                return this.forceUrlContextEnabled ? '✅' : '❌';
             },
             forceUrlContextText() {
-                return this.forceUrlContextEnabled ? 'true' : 'false';
+                this.lang;
+                return this.forceUrlContextEnabled ? this.t('enabled') : this.t('disabled');
+            },
+            forceWebSearchIcon() {
+                return this.forceWebSearchEnabled ? '✅' : '❌';
             },
             forceWebSearchText() {
-                return this.forceWebSearchEnabled ? 'true' : 'false';
+                this.lang;
+                return this.forceWebSearchEnabled ? this.t('enabled') : this.t('disabled');
+            },
+            formatErrorsText() {
+                this.lang;
+                const indices = this.invalidIndicesRaw || [];
+                return `[${indices.join(', ')}] (${this.t('total')}: ${indices.length})`;
+            },
+            serviceConnectedClass() {
+                return this.serviceConnected ? 'status-ok' : 'status-error';
+            },
+            serviceConnectedText() {
+                this.lang;
+                return this.serviceConnected ? this.t('running') : this.t('disconnected');
             },
             streamingModeText() {
-                return this.streamingModeReal ? 'real' : 'fake';
+                this.lang;
+                return this.streamingModeReal ? this.t('real') : this.t('fake');
+            },
+            totalScannedAccountsText() {
+                this.lang;
+                const indices = this.initialIndicesRaw || [];
+                return `[${indices.join(', ')}] (${this.t('total')}: ${indices.length})`;
             },
         },
         created() {
+            this.logs = this.t('loading');
             I18n.onChange(lang => {
                 this.lang = lang;
+                if (this.logCount === 0) {
+                    this.logs = this.t('loading');
+                }
             });
         },
         data() {
             return {
                 accountDetails: [],
+                accountNameMap: {},
+                apiKeySource: '',
+                browserConnected: false,
                 currentAuthIndex: 0,
+                failureCount: 0,
                 forceThinkingEnabled: false,
                 forceUrlContextEnabled: false,
                 forceWebSearchEnabled: false,
+                initialIndicesRaw: [],
+                invalidIndicesRaw: [],
+                isInitializing: true,
                 isSwitchingAccount: false,
                 isUpdating: false,
                 lang: I18n.getLang(),
+                logCount: 0,
+                logs: 'Loading...',
                 selectedAccount: null,
+                serviceConnected: false,
                 streamingModeReal: false,
+                usageCount: 0,
             };
         },
         methods: {
@@ -81,15 +168,16 @@
                             const res = await fetch(`/api/accounts/${targetIndex}`, {
                                 method: 'DELETE',
                             });
-                            const data = await res.text();
+                            const data = await res.json();
+                            const message = this.t(data.code, data);
                             if (res.ok) {
-                                ElementPlus.ElMessage.success(data);
+                                ElementPlus.ElMessage.success(message);
                             } else {
-                                ElementPlus.ElMessage.error(data);
+                                ElementPlus.ElMessage.error(message);
                             }
                         } catch (err) {
                             ElementPlus.ElMessage.error(
-                                this.t('deleteFailed') + (err.message || err)
+                                this.t('deleteFailed', { message: err.message || err })
                             );
                         } finally {
                             this.isSwitchingAccount = false;
@@ -103,61 +191,13 @@
                     });
             },
             handleForceThinkingBeforeChange() {
-                if (this.isUpdating) {
-                    return false;
-                }
-
-                return new Promise((resolve, reject) => {
-                    fetch('/api/settings/force-thinking', { method: 'PUT' })
-                        .then(res => res.text())
-                        .then(data => {
-                            ElementPlus.ElMessage.success(data);
-                            window.updateContent?.();
-                            resolve(true);
-                        })
-                        .catch(err => {
-                            ElementPlus.ElMessage.error(this.t('settingFailed') + err);
-                            reject();
-                        });
-                });
+                return this.handleSettingChange('/api/settings/force-thinking', 'forceThinking');
             },
             handleForceUrlContextBeforeChange() {
-                if (this.isUpdating) {
-                    return false;
-                }
-
-                return new Promise((resolve, reject) => {
-                    fetch('/api/settings/force-url-context', { method: 'PUT' })
-                        .then(res => res.text())
-                        .then(data => {
-                            ElementPlus.ElMessage.success(data);
-                            window.updateContent?.();
-                            resolve(true);
-                        })
-                        .catch(err => {
-                            ElementPlus.ElMessage.error(this.t('settingFailed') + err);
-                            reject();
-                        });
-                });
+                return this.handleSettingChange('/api/settings/force-url-context', 'forceUrlContext');
             },
             handleForceWebSearchBeforeChange() {
-                if (this.isUpdating) {
-                    return false;
-                }
-
-                return new Promise((resolve, reject) => {
-                    fetch('/api/settings/force-web-search', { method: 'PUT' })
-                        .then(res => res.text())
-                        .then(data => {
-                            ElementPlus.ElMessage.success(data);
-                            window.updateContent?.();
-                            resolve(true);
-                        })
-                        .catch(err => {
-                            ElementPlus.ElMessage.error(this.t('settingFailed') + err);
-                            reject();
-                        });
-                });
+                return this.handleSettingChange('/api/settings/force-web-search', 'forceWebSearch');
             },
             handleLogout() {
                 const { ElMessageBox, ElMessage } = ElementPlus;
@@ -172,14 +212,16 @@
                             headers: { 'Content-Type': 'application/json' },
                             method: 'POST',
                         })
-                            .then(response => {
-                                if (response.ok) {
-                                    ElMessage.success(this.t('logoutSuccess'));
+                            .then(res => res.json())
+                            .then(data => {
+                                const message = this.t(data.code);
+                                if (data.code === 'LOGOUT_SUCCESS') {
+                                    ElMessage.success(message);
                                     setTimeout(() => {
                                         window.location.href = '/login';
                                     }, 500);
                                 } else {
-                                    ElMessage.error(this.t('logoutFail'));
+                                    ElMessage.error(message);
                                 }
                             })
                             .catch(err => {
@@ -191,30 +233,63 @@
                         // User canceled, no-op
                     });
             },
-            handleStreamingModeBeforeChange() {
+            async handleSettingChange(apiUrl, settingName) {
+                if (this.isUpdating) {
+                    return false;
+                }
+
+                try {
+                    const res = await fetch(apiUrl, { method: 'PUT' });
+                    const data = await res.json();
+                    if (res.ok) {
+                        const message = this.t(data.code, {
+                            setting: this.t(settingName),
+                            value: this.t(String(data.value)),
+                        });
+                        ElementPlus.ElMessage.success(message);
+                        window.updateContent?.();
+                        return true;
+                    } else {
+                        const message = this.t(data.code, data);
+                        ElementPlus.ElMessage.error(message);
+                        return false;
+                    }
+                } catch (err) {
+                    ElementPlus.ElMessage.error(this.t('settingFailed', { message: err.message || err }));
+                    return false;
+                }
+            },
+            async handleStreamingModeBeforeChange() {
                 if (this.isUpdating) {
                     return false;
                 }
 
                 const newMode = !this.streamingModeReal ? 'real' : 'fake';
 
-                return new Promise((resolve, reject) => {
-                    fetch('/api/settings/streaming-mode', {
+                try {
+                    const res = await fetch('/api/settings/streaming-mode', {
                         body: JSON.stringify({ mode: newMode }),
                         headers: { 'Content-Type': 'application/json' },
                         method: 'PUT',
-                    })
-                        .then(res => res.text())
-                        .then(data => {
-                            ElementPlus.ElMessage.success(data);
-                            window.updateContent?.();
-                            resolve(true);
-                        })
-                        .catch(err => {
-                            ElementPlus.ElMessage.error(this.t('settingFailed') + err);
-                            reject();
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        const message = this.t(data.code, {
+                            setting: this.t('streamingMode'),
+                            value: this.t(data.value),
                         });
-                });
+                        ElementPlus.ElMessage.success(message);
+                        window.updateContent?.();
+                        return true;
+                    } else {
+                        const message = this.t(data.code, data);
+                        ElementPlus.ElMessage.error(message);
+                        return false;
+                    }
+                } catch (err) {
+                    ElementPlus.ElMessage.error(this.t('settingFailed', { message: err.message || err }));
+                    return false;
+                }
             },
             switchSpecificAccount() {
                 const targetIndex = this.selectedAccount;
@@ -250,15 +325,16 @@
                                 headers: { 'Content-Type': 'application/json' },
                                 method: 'PUT',
                             });
-                            const data = await res.text();
+                            const data = await res.json();
+                            const message = this.t(data.code, data);
                             if (res.ok) {
-                                ElementPlus.ElMessage.success(data);
+                                ElementPlus.ElMessage.success(message);
                             } else {
-                                ElementPlus.ElMessage.error(data);
+                                ElementPlus.ElMessage.error(message);
                             }
                         } catch (err) {
                             ElementPlus.ElMessage.error(
-                                this.t('settingFailed') + (err.message || err)
+                                this.t('settingFailed', { message: err.message || err })
                             );
                         } finally {
                             this.isSwitchingAccount = false;
@@ -272,20 +348,38 @@
                         }
                     });
             },
-            t(key, fallback) {
-                return I18n.t(key, fallback);
+            t(key, options) {
+                // Access this.lang to create a dependency for reactivity
+                this.lang;
+                return I18n.t(key, options);
             },
             toggleLanguage() {
                 return I18n.toggleLang();
             },
-            updateSwitchStates(data) {
+            updateStatus(data) {
+                this.serviceConnected = true;
+                if (this.isInitializing) {
+                    this.isInitializing = false;
+                }
                 this.isUpdating = true;
-                this.streamingModeReal = data.status.streamingMode.includes('real');
-                this.forceThinkingEnabled = data.status.forceThinking.includes('Enabled');
-                this.forceWebSearchEnabled = data.status.forceWebSearch.includes('Enabled');
-                this.forceUrlContextEnabled = data.status.forceUrlContext.includes('Enabled');
+                this.streamingModeReal = data.status.streamingMode === 'real';
+                this.forceThinkingEnabled = data.status.forceThinking === true;
+                this.forceWebSearchEnabled = data.status.forceWebSearch === true;
+                this.forceUrlContextEnabled = data.status.forceUrlContext === true;
                 this.currentAuthIndex = data.status.currentAuthIndex;
                 this.accountDetails = data.status.accountDetails || [];
+                this.browserConnected = data.status.browserConnected;
+                this.apiKeySource = data.status.apiKeySource;
+                this.usageCount = data.status.usageCount;
+                this.failureCount = data.status.failureCount;
+                this.logCount = data.logCount;
+                this.logs = data.logs;
+                this.initialIndicesRaw = data.status.initialIndicesRaw;
+                this.invalidIndicesRaw = data.status.invalidIndicesRaw;
+                this.accountNameMap = data.status.accountDetails.reduce((acc, item) => {
+                    acc[item.index] = item.name;
+                    return acc;
+                }, {});
 
                 const isSelectedAccountValid = this.accountDetails.some(acc => acc.index === this.selectedAccount);
 
@@ -296,56 +390,11 @@
 
                 this.$nextTick(() => {
                     this.isUpdating = false;
+                    if (window.I18n) {
+                        window.I18n.applyI18n();
+                    }
                 });
             },
-        },
-        mounted() {
-            // Check for new auth info from account_binding page
-            const newAuthInfoRaw = sessionStorage.getItem('newAuthInfo');
-            if (newAuthInfoRaw) {
-                try {
-                    const newAuthInfo = JSON.parse(newAuthInfoRaw);
-                    this.isUpdating = true;
-                    // Don't set currentAuthIndex, keep it as it was
-                    this.accountDetails = newAuthInfo.availableIndices.map(index => ({
-                        index,
-                        name: newAuthInfo.accountNameMap[index] || 'N/A',
-                    }));
-                    this.$nextTick(() => {
-                        this.isUpdating = false;
-                        updateContent(); // Immediately update the content to reflect the new state
-                    });
-                } catch (e) {
-                    console.error('Failed to parse new auth info:', e);
-                } finally {
-                    sessionStorage.removeItem('newAuthInfo');
-                }
-            }
-
-            const initialMode = '{{streamingMode}}';
-            const initialThinking = '{{forceThinking}}';
-            const initialWebSearch = '{{forceWebSearch}}';
-            const initialUrlContext = '{{forceUrlContext}}';
-            const initialAuthIndex = '{{currentAuthIndex}}';
-
-            this.isUpdating = true;
-            this.streamingModeReal = initialMode === 'real';
-            this.forceThinkingEnabled = initialThinking === 'true' || initialThinking === true;
-            this.forceWebSearchEnabled = initialWebSearch === 'true' || initialWebSearch === true;
-            this.forceUrlContextEnabled = initialUrlContext === 'true' || initialUrlContext === true;
-
-            const parsedInitialAuthIndex = parseInt(initialAuthIndex, 10);
-            if (!isNaN(parsedInitialAuthIndex) && parsedInitialAuthIndex > 0) {
-                this.currentAuthIndex = parsedInitialAuthIndex;
-                this.selectedAccount = parsedInitialAuthIndex;
-            } else {
-                this.currentAuthIndex = 0;
-                this.selectedAccount = null;
-            }
-
-            this.$nextTick(() => {
-                this.isUpdating = false;
-            });
         },
         watch: {
             isSwitchingAccount(newVal) {
@@ -357,6 +406,6 @@
         },
     });
 
-    const appInstance = app.use(ElementPlus).mount('#app');
-    window.vueApp = appInstance;
+    window.vueApp = app.use(ElementPlus)
+        .mount('#app');
 })();

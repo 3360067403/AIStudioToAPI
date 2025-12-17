@@ -72,21 +72,21 @@
             <h1><span data-i18n="statusHeading">Proxy Service Status</span> <span class="dot"></span></h1>
             <div id="status-section">
                 <pre>
-<span class="label" data-i18n="serviceStatus">Service Status</span>: <span class="status-ok" data-i18n="running">Running</span>
-<span class="label" data-i18n="browserConnection">Browser Connection</span>: <span class="{{browserConnectedClass}}">{{browserConnected}}</span>
+<span class="label" data-i18n="serviceStatus">Service Status</span>: <span :class="serviceConnectedClass" v-text="serviceConnectedText"></span><template v-if="serviceConnected">
+<span class="label" data-i18n="browserConnection">Browser Connection</span>: <span :class="browserConnectedClass" v-text="browserConnectedText"></span>
 --- <span data-i18n="serviceConfig">Service Configuration</span> ---
-<span class="label" data-i18n="streamingMode">Streaming Mode</span>: {{streamingMode}}
-<span class="label" data-i18n="forceThinking">Force Thinking</span>: {{forceThinking}}
-<span class="label" data-i18n="forceWebSearch">Force Web Search</span>: {{forceWebSearch}}
-<span class="label" data-i18n="forceUrlContext">Force URL Context</span>: {{forceUrlContext}}
-<span class="label" data-i18n="apiKey">API Key</span>: {{apiKeySource}}
+<span class="label" data-i18n="streamingMode">Streaming Mode</span>: <span v-text="streamingModeText"></span> <span class="comment" v-text="`(${t('onlyAppliesWhenStreamingEnabled')})`"></span>
+<span class="label" data-i18n="forceThinking">Force Thinking</span>: <span v-html="forceThinkingIcon"></span> <span v-text="forceThinkingText"></span>
+<span class="label" data-i18n="forceWebSearch">Force Web Search</span>: <span v-html="forceWebSearchIcon"></span> <span v-text="forceWebSearchText"></span>
+<span class="label" data-i18n="forceUrlContext">Force URL Context</span>: <span v-html="forceUrlContextIcon"></span> <span v-text="forceUrlContextText"></span>
+<span class="label" data-i18n="apiKey">API Key</span>: <span v-text="apiKeySourceText"></span>
 --- <span data-i18n="accountStatus">Account Status</span> ---
-<span class="label" data-i18n="currentAccount">Current Active Account</span>: #{{currentAuthIndex}} ({{currentAccountName}})
-<span class="label" data-i18n="usageCount">Usage Count</span>: {{usageCount}}
-<span class="label" data-i18n="consecutiveFailures">Consecutive Failures</span>: {{failureCount}}
-<span class="label" data-i18n="totalScanned">Total Scanned Accounts</span>: {{totalScannedAccounts}}
-{{accountDetailsHtml}}
-<span class="label" data-i18n="formatErrors">Format Errors (Ignored)</span>: {{formatErrors}}
+<span class="label" data-i18n="currentAccount">Current Active Account</span>: #<span v-text="currentAuthIndex"></span> (<span v-text="currentAccountName"></span>)
+<span class="label" data-i18n="usageCount">Usage Count</span>: <span v-text="usageCount"></span>
+<span class="label" data-i18n="consecutiveFailures">Consecutive Failures</span>: <span v-text="failureCount"></span>
+<span class="label" data-i18n="totalScanned">Total Scanned Accounts</span>: <span v-text="totalScannedAccountsText"></span>
+<span v-html="accountDetailsHtml"></span>
+<span class="label" data-i18n="formatErrors">Format Errors (Ignored)</span>: <span v-text="formatErrorsText"></span></template>
         </pre>
             </div>
             <div id="actions-section" style="margin-top: 2em;">

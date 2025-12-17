@@ -132,9 +132,9 @@ class WebRoutes {
             }
             let errorMessageHtml = "";
             if (req.query.error === "1") {
-                errorMessageHtml = "<p class=\"error\">Invalid API Key!</p>";
+                errorMessageHtml = "<p class=\"error\" data-i18n=\"loginErrorInvalidKey\">Invalid API Key!</p>";
             } else if (req.query.error === "2") {
-                errorMessageHtml = "<p class=\"error\">Too many failed attempts. Please try again in 15 minutes.</p>";
+                errorMessageHtml = "<p class=\"error\" data-i18n=\"loginErrorRateLimit\">Too many failed attempts. Please try again in 15 minutes.</p>";
             }
             const loginHtml = this._loadTemplate("login.html", {
                 errorMessageHtml,
@@ -214,12 +214,12 @@ class WebRoutes {
                 if (err) {
                     this.logger.error(`[Auth] Session destruction failed for IP ${ip}: ${err.message}`);
                     return res.status(500)
-                        .json({ error: "Logout failed" });
+                        .json({ code: "LOGOUT_FAILED" });
                 }
                 this.logger.info(`[Auth] User logged out from IP: ${ip}`);
                 res.clearCookie("connect.sid");
                 res.status(200)
-                    .json({ success: true });
+                    .json({ code: "LOGOUT_SUCCESS" });
             });
         });
     }
@@ -335,37 +335,26 @@ class WebRoutes {
                         targetIndex
                     );
                     if (result.success) {
-                        res.status(200)
-                            .send(`Switch successful! Account #${result.newIndex} activated.`);
+                        res.status(200).json({ code: "ACCOUNT_SWITCH_SUCCESS", newIndex: result.newIndex });
                     } else {
-                        res.status(400)
-                            .send(result.reason);
+                        res.status(400).json({ code: "ACCOUNT_SWITCH_FAILED", reason: result.reason });
                     }
                 } else {
                     this.logger.info("[WebUI] Received manual request to switch to next account...");
                     if (this.serverSystem.authSource.availableIndices.length <= 1) {
-                        return res
-                            .status(400)
-                            .send("Switch operation cancelled: Only one available account, cannot switch.");
+                        return res.status(400).json({ code: "ACCOUNT_SWITCH_CANCELLED_SINGLE" });
                     }
                     const result = await this.serverSystem.requestHandler._switchToNextAuth();
                     if (result.success) {
-                        res
-                            .status(200)
-                            .send(`Switch successful! Switched to account #${result.newIndex}.`);
+                        res.status(200).json({ code: "ACCOUNT_SWITCH_SUCCESS_NEXT", newIndex: result.newIndex });
                     } else if (result.fallback) {
-                        res
-                            .status(200)
-                            .send(`Switch failed, but successfully fell back to account #${result.newIndex}.`);
+                        res.status(200).json({ code: "ACCOUNT_SWITCH_FALLBACK", newIndex: result.newIndex });
                     } else {
-                        res.status(409)
-                            .send(`Operation not executed: ${result.reason}`);
+                        res.status(409).json({ code: "ACCOUNT_SWITCH_SKIPPED", reason: result.reason });
                     }
                 }
             } catch (error) {
-                res
-                    .status(500)
-                    .send(`Fatal error: Operation failed! Please check logs. Error: ${error.message}`);
+                res.status(500).json({ code: "ACCOUNT_SWITCH_FATAL", error: error.message });
             }
         });
 
@@ -375,17 +364,17 @@ class WebRoutes {
             const currentAuthIndex = this.serverSystem.requestHandler.currentAuthIndex;
 
             if (!Number.isInteger(targetIndex)) {
-                return res.status(400).send("Invalid account index.");
+                return res.status(400).json({ code: "ERROR_INVALID_INDEX" });
             }
 
             if (targetIndex === currentAuthIndex) {
-                return res.status(400).send("Cannot delete the currently running account.");
+                return res.status(400).json({ code: "ERROR_DELETE_CURRENT_ACCOUNT" });
             }
 
             const { authSource } = this.serverSystem;
 
             if (!authSource.availableIndices.includes(targetIndex)) {
-                return res.status(404).send(`Account #${targetIndex} not found or already removed.`);
+                return res.status(404).json({ code: "ERROR_ACCOUNT_NOT_FOUND", index: targetIndex });
             }
 
             try {
@@ -393,10 +382,10 @@ class WebRoutes {
                 this.logger.warn(
                     `[WebUI] Account #${targetIndex} deleted via web interface. Current account: #${currentAuthIndex}`
                 );
-                res.status(200).send(`Account #${targetIndex} deleted successfully.`);
+                res.status(200).json({ code: "ACCOUNT_DELETE_SUCCESS", index: targetIndex });
             } catch (error) {
                 this.logger.error(`[WebUI] Failed to delete account #${targetIndex}: ${error.message}`);
-                return res.status(500).send(error.message);
+                return res.status(500).json({ code: "ACCOUNT_DELETE_FAILED", error: error.message });
             }
         });
 
@@ -407,36 +396,31 @@ class WebRoutes {
                 this.logger.info(
                     `[WebUI] Streaming mode switched by authenticated user to: ${this.serverSystem.streamingMode}`
                 );
-                res.status(200)
-                    .send(`Streaming mode switched to: ${this.serverSystem.streamingMode}`);
+                res.status(200).json({ code: "SETTING_UPDATE_SUCCESS", setting: "streamingMode", value: newMode });
             } else {
-                res.status(400)
-                    .send("Invalid mode. Use \"fake\" or \"real\".");
+                res.status(400).json({ code: "ERROR_INVALID_MODE" });
             }
         });
 
         app.put("/api/settings/force-thinking", isAuthenticated, (req, res) => {
             this.serverSystem.forceThinking = !this.serverSystem.forceThinking;
-            const statusText = this.serverSystem.forceThinking ? "Enabled" : "Disabled";
+            const statusText = this.serverSystem.forceThinking;
             this.logger.info(`[WebUI] Force thinking toggle switched to: ${statusText}`);
-            res.status(200)
-                .send(`Force thinking mode: ${statusText}`);
+            res.status(200).json({ code: "SETTING_UPDATE_SUCCESS", setting: "forceThinking", value: statusText });
         });
 
         app.put("/api/settings/force-web-search", isAuthenticated, (req, res) => {
             this.serverSystem.forceWebSearch = !this.serverSystem.forceWebSearch;
-            const statusText = this.serverSystem.forceWebSearch ? "Enabled" : "Disabled";
+            const statusText = this.serverSystem.forceWebSearch;
             this.logger.info(`[WebUI] Force web search toggle switched to: ${statusText}`);
-            res.status(200)
-                .send(`Force web search: ${statusText}`);
+            res.status(200).json({ code: "SETTING_UPDATE_SUCCESS", setting: "forceWebSearch", value: statusText });
         });
 
         app.put("/api/settings/force-url-context", isAuthenticated, (req, res) => {
             this.serverSystem.forceUrlContext = !this.serverSystem.forceUrlContext;
-            const statusText = this.serverSystem.forceUrlContext ? "Enabled" : "Disabled";
+            const statusText = this.serverSystem.forceUrlContext;
             this.logger.info(`[WebUI] Force URL context toggle switched to: ${statusText}`);
-            res.status(200)
-                .send(`Force URL context: ${statusText}`);
+            res.status(200).json({ code: "SETTING_UPDATE_SUCCESS", setting: "forceUrlContext", value: statusText });
         });
     }
 
@@ -466,13 +450,13 @@ class WebRoutes {
         if (process.platform === "win32") {
             this.logger.error("[VNC] VNC feature is not supported on Windows.");
             return res.status(501)
-                .json({ error: "VNC feature is not supported on Windows." });
+                .json({ code: "ERROR_VNC_UNSUPPORTED_OS" });
         }
 
         if (this.isVncOperationInProgress) {
             this.logger.warn("[VNC] A VNC operation is already in progress. Please wait.");
             return res.status(429)
-                .json({ error: "An operation is already in progress. Please wait." });
+                .json({ code: "ERROR_VNC_IN_PROGRESS" });
         }
 
         this.isVncOperationInProgress = true;
@@ -647,7 +631,7 @@ class WebRoutes {
             this.logger.error(`[VNC] Failed to start VNC session: ${error.message}`);
             await this._cleanupVncSession("startup_error");
             res.status(500)
-                .json({ error: "Failed to start VNC session" });
+                .json({ code: "ERROR_VNC_START_FAILED" });
         } finally {
             this.isVncOperationInProgress = false;
         }
@@ -656,7 +640,7 @@ class WebRoutes {
     async saveAuthFile(req, res) {
         if (!this.vncSession || !this.vncSession.context) {
             return res.status(400)
-                .json({ error: "No active VNC session found to save." });
+                .json({ code: "ERROR_VNC_NO_SESSION" });
         }
 
         let { accountName } = req.body;
@@ -692,7 +676,7 @@ class WebRoutes {
             } catch (e) {
                 this.logger.warn(`[VNC] Could not automatically detect email: ${e.message}. Requesting manual input from client.`);
                 return res.status(400)
-                    .json({ reason: "email_fetch_failed", success: false });
+                    .json({ code: "ERROR_VNC_EMAIL_FETCH_FAILED" });
             }
         }
 
@@ -721,9 +705,9 @@ class WebRoutes {
                 accountName,
                 accountNameMap: Object.fromEntries(this.serverSystem.authSource.accountNameMap),
                 availableIndices: this.serverSystem.authSource.availableIndices,
+                code: "VNC_AUTH_SAVE_SUCCESS",
                 filePath: newAuthFilePath,
                 newAuthIndex: nextAuthIndex,
-                success: true,
             });
 
             setTimeout(() => {
@@ -733,7 +717,7 @@ class WebRoutes {
         } catch (error) {
             this.logger.error(`[VNC] Failed to save auth file: ${error.message}`);
             res.status(500)
-                .json({ error: error.message });
+                .json({ code: "ERROR_VNC_SAVE_FAILED", error: error.message });
         }
     }
 
@@ -872,18 +856,16 @@ class WebRoutes {
                 currentAccountName,
                 currentAuthIndex,
                 failureCount,
-                forceThinking: this.serverSystem.forceThinking ? "✅ Enabled" : "❌ Disabled",
-                forceUrlContext: this.serverSystem.forceUrlContext ? "✅ Enabled" : "❌ Disabled",
-                forceWebSearch: this.serverSystem.forceWebSearch ? "✅ Enabled" : "❌ Disabled",
+                forceThinking: this.serverSystem.forceThinking,
+                forceUrlContext: this.serverSystem.forceUrlContext,
+                forceWebSearch: this.serverSystem.forceWebSearch,
                 immediateSwitchStatusCodes:
                     config.immediateSwitchStatusCodes.length > 0
                         ? `[${config.immediateSwitchStatusCodes.join(", ")}]`
                         : "Disabled",
-                initialIndices: `[${initialIndices.join(", ")}] (Total: ${initialIndices.length
-                })`,
-                invalidIndices: `[${invalidIndices.join(", ")}] (Total: ${invalidIndices.length
-                })`,
-                streamingMode: `${this.serverSystem.streamingMode} (only applies when streaming is enabled)`,
+                initialIndicesRaw: initialIndices,
+                invalidIndicesRaw: invalidIndices,
+                streamingMode: this.serverSystem.streamingMode,
                 usageCount,
             },
         };
@@ -935,18 +917,15 @@ class WebRoutes {
             accountOptionsHtml,
             apiKeySource: config.apiKeySource,
             browserConnected: !!browserManager.browser,
-            browserConnectedClass: browserManager.browser ? "status-ok" : "status-error",
             currentAccountName: this._escapeHtml(currentAccountName),
             currentAuthIndex,
             failureCount,
-            forceThinking: this.serverSystem.forceThinking ? "✅ Enabled" : "❌ Disabled",
-            forceUrlContext: this.serverSystem.forceUrlContext ? "✅ Enabled" : "❌ Disabled",
-            forceWebSearch: this.serverSystem.forceWebSearch ? "✅ Enabled" : "❌ Disabled",
-            formatErrors: `[${invalidIndices.join(", ")}] (Total: ${invalidIndices.length})`,
+            initialForceThinking: String(this.serverSystem.forceThinking),
+            initialForceUrlContext: String(this.serverSystem.forceUrlContext),
+            initialForceWebSearch: String(this.serverSystem.forceWebSearch),
+            initialStreamingMode: config.streamingMode,
             logCount: logs.length,
             logs: this._escapeHtml(logs.join("\n")),
-            streamingMode: config.streamingMode,
-            totalScannedAccounts: `[${initialIndices.join(", ")}] (Total: ${initialIndices.length})`,
             usageCount,
         });
     }

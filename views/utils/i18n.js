@@ -11,6 +11,7 @@
     const fallbackLang = 'en';
     const localesCache = {};
     const listeners = [];
+    let initialized = false;
 
     let currentLang = (() => {
         const saved = (localStorage.getItem('lang') || '').slice(0, 2).toLowerCase();
@@ -95,15 +96,19 @@
     const init = async () => {
         await loadLocale(fallbackLang);
         await setLang(currentLang);
+        initialized = true;
         return currentLang;
     };
 
-    const t = (key, fallback) => {
+    const t = (key, options) => {
         const langData = localesCache[currentLang] || {};
-        if (Object.prototype.hasOwnProperty.call(langData, key)) {
-            return langData[key];
+        let text = langData[key] || (options && options.fallback) || key;
+
+        if (typeof options === 'object' && options !== null) {
+            text = text.replace(/\{(\w+)}/g, (match, placeholder) => options[placeholder] !== undefined ? options[placeholder] : match);
         }
-        return fallback !== undefined ? fallback : key;
+
+        return text;
     };
 
     const toggleLang = () => setLang(currentLang === 'en' ? 'zh' : 'en');
@@ -117,6 +122,7 @@
         applyI18n: () => applyDomTranslations(currentLang),
         getLang: () => currentLang,
         init,
+        isInitialized: () => initialized,
         onChange,
         setLang,
         t,

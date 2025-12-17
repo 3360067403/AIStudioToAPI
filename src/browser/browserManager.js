@@ -403,6 +403,7 @@ class BrowserManager {
                 await this.browser.close();
                 this.browser = null;
             }
+            this.currentAuthIndex = 0;
             throw error;
         }
     }
