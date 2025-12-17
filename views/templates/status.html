@@ -110,7 +110,7 @@
                                 fill="currentColor" p-id="4751"></path>
                         </svg>
                     </button>
-                    <button :title="t('notImplemented','Not implemented yet')">
+                    <button @click="addUser" :disabled="isSwitchingAccount" :title="t('btnAddUser', 'Add User')">
                         <svg t="1765912197860" class="icon" viewBox="0 0 1024 1024" version="1.1"
                             xmlns="http://www.w3.org/2000/svg" p-id="8015" id="mx_n_1765912197860"
                             xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24">
@@ -119,7 +119,7 @@
                                 fill="currentColor" p-id="8016"></path>
                         </svg>
                     </button>
-                    <button :title="t('notImplemented','Not implemented yet')">
+                    <button @click="deleteUser" :disabled="isSwitchingAccount || selectedAccount === null" :title="t('btnDeleteUser', 'Delete User')">
                         <svg t="1765908584009" class="icon" viewBox="0 0 1049 1024" version="1.1"
                             xmlns="http://www.w3.org/2000/svg" p-id="3581" xmlns:xlink="http://www.w3.org/1999/xlink"
                             width="24" height="24">

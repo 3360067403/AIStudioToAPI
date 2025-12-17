@@ -75,10 +75,6 @@ class AuthSource {
             throw new Error(`Failed to delete auth file for account #${index}: ${error.message}`);
         }
 
-        this.accountNameMap.delete(index);
-        this.initialIndices = this.initialIndices.filter(i => i !== index);
-        this.availableIndices = this.availableIndices.filter(i => i !== index);
-
         return {
             remainingAccounts: this.availableIndices.length,
             removedIndex: index,

@@ -53,6 +53,55 @@
             };
         },
         methods: {
+            addUser() {
+                window.location.href = '/account_binding';
+            },
+            deleteUser() {
+                const targetIndex = this.selectedAccount;
+                if (targetIndex === null) {
+                    ElementPlus.ElMessage.warning(this.t('noAccountSelected'));
+                    return;
+                }
+
+                const targetAccount = this.accountDetails.find(acc => acc.index === targetIndex);
+                const accountSuffix = targetAccount ? ` (${targetAccount.name})` : '';
+
+                ElementPlus.ElMessageBox.confirm(
+                    `${this.t('confirmDelete')} #${targetIndex}${accountSuffix}?`,
+                    {
+                        cancelButtonText: this.t('cancel'),
+                        confirmButtonText: this.t('ok'),
+                        lockScroll: false,
+                        type: 'warning',
+                    }
+                )
+                    .then(async () => {
+                        this.isSwitchingAccount = true;
+                        try {
+                            const res = await fetch(`/api/accounts/${targetIndex}`, {
+                                method: 'DELETE',
+                            });
+                            const data = await res.text();
+                            if (res.ok) {
+                                ElementPlus.ElMessage.success(data);
+                            } else {
+                                ElementPlus.ElMessage.error(data);
+                            }
+                        } catch (err) {
+                            ElementPlus.ElMessage.error(
+                                this.t('deleteFailed') + (err.message || err)
+                            );
+                        } finally {
+                            this.isSwitchingAccount = false;
+                            window.updateContent?.();
+                        }
+                    })
+                    .catch(e => {
+                        if (e !== 'cancel') {
+                            console.error(e);
+                        }
+                    });
+            },
             handleForceThinkingBeforeChange() {
                 if (this.isUpdating) {
                     return false;

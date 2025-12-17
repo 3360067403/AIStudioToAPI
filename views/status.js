@@ -24,15 +24,14 @@
             )
             .join('\n');
 
+        let currentAccountHtml = '';
+        if (data.status.currentAuthIndex !== null && data.status.currentAuthIndex > 0) {
+            currentAccountHtml = '<span class="label">' + t('currentAccount') + '</span>: #' + data.status.currentAuthIndex + ' (' + data.status.currentAccountName + ')\n';
+        } else {
+            currentAccountHtml = '<span class="label">' + t('currentAccount') + '</span>: <span class="status-error">' + t('noActiveAccount') + '</span>\n';
+        }
 
-            let currentAccountHtml = '';
-            if (data.status.currentAuthIndex !== null && data.status.currentAuthIndex > 0) {
-                currentAccountHtml = '<span class="label">' + t('currentAccount') + '</span>: #' + data.status.currentAuthIndex + ' (' + data.status.currentAccountName + ')\n';
-            } else {
-                currentAccountHtml = '<span class="label">' + t('currentAccount') + '</span>: <span class="status-error">' + t('noActiveAccount') + '</span>\n';
-            }
-
-            statusPre.innerHTML
+        statusPre.innerHTML
             = `<span class="label">${t('serviceStatus')}</span>: <span class="status-ok">${t('running')}</span>\n`
             + `<span class="label">${t('browserConnection')}</span>: <span class="${data.status.browserConnected ? 'status-ok' : 'status-error'}">${data.status.browserConnected}</span>\n`
             + `--- ${t('serviceConfig')} ---\n`

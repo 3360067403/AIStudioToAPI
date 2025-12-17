@@ -393,14 +393,7 @@ class WebRoutes {
                 this.logger.warn(
                     `[WebUI] Account #${targetIndex} deleted via web interface. Current account: #${currentAuthIndex}`
                 );
-
-                const statusData = this._getStatusData();
-
-                return res.status(200).json({
-                    accountDetails: statusData.status.accountDetails,
-                    currentAuthIndex: statusData.status.currentAuthIndex,
-                    message: `Account #${targetIndex} deleted successfully.`,
-                });
+                res.status(200).send(`Account #${targetIndex} deleted successfully.`);
             } catch (error) {
                 this.logger.error(`[WebUI] Failed to delete account #${targetIndex}: ${error.message}`);
                 return res.status(500).send(error.message);
