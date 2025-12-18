@@ -1,0 +1,63 @@
+{
+  "name": "AIStudioToAPI Dev Container",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  
+  // 配置选项
+  "customizations": {
+    "vscode": {
+      // 扩展
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "Vue.volar",
+        "bradlc.vscode-tailwindcss",
+        "christian-kohler.path-intellisense",
+        "eamodio.gitlens"
+      ],
+      // 设置
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[vue]": {
+          "editor.defaultFormatter": "Vue.volar"
+        }
+      }
+    }
+  },
+
+  // 转发端口
+  "forwardPorts": [7860, 5173],
+  "portsAttributes": {
+    "7860": {
+      "label": "API Server",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Vite Dev Server",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // 容器创建后运行的命令
+  "postCreateCommand": "npm install && npm run build:ui",
+
+  // 容器启动后运行的命令
+  "postStartCommand": "echo 'Dev container is ready! Run: npm run dev'",
+
+  // 使用的用户
+  "remoteUser": "root",
+
+  // 功能特性
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  }
+}
