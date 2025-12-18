@@ -137,7 +137,7 @@
                     :disabled="!isConnected || isSaving"
                     :aria-label="t('authSaveSession')"
                     :title="t('authSaveSession')"
-                    @click="saveAuth"
+                    @click="saveAuth()"
                 >
                     <svg
                         t="1765982053330"
@@ -451,8 +451,8 @@ const saveAuth = async (accountName = null) => {
     isSaving.value = true;
 
     try {
-        const body = accountName ? JSON.stringify({ accountName }) : null;
-        const headers = accountName ? { "Content-Type": "application/json" } : {};
+        const body = JSON.stringify(accountName ? { accountName } : {});
+        const headers = { "Content-Type": "application/json" };
 
         const response = await fetch("/api/vnc/auth", {
             body,
