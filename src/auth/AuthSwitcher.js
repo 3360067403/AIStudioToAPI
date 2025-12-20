@@ -81,7 +81,7 @@ class AuthSwitcher {
                     return { newIndex: singleIndex, success: true };
                 } catch (error) {
                     this.logger.error(`❌ [Auth] Single account restart failed: ${error.message}`);
-                    throw error;
+                    throw new Error(`Only one account is available and restart failed: ${error.message}`);
                 }
             }
 
@@ -164,6 +164,12 @@ class AuthSwitcher {
                         `FATAL: ❌❌❌ [Auth] Final attempt with account #${originalStartAccount} also failed!`
                     );
                     failedAccounts.push(originalStartAccount);
+
+                    // Throw fallback failure error with detailed information
+                    this.currentAuthIndex = 0;
+                    throw new Error(
+                        `Fallback failed reason: All accounts failed including fallback to #${originalStartAccount}. Failed accounts: [${failedAccounts.join(", ")}]`
+                    );
                 }
             }
 
@@ -172,7 +178,9 @@ class AuthSwitcher {
                 `FATAL: All ${available.length} accounts failed! Failed accounts: [${failedAccounts.join(", ")}]`
             );
             this.currentAuthIndex = 0;
-            throw new Error(`All ${available.length} available accounts failed to initialize (including final retry).`);
+            throw new Error(
+                `Switching to account failed: All ${available.length} available accounts failed to initialize. Failed accounts: [${failedAccounts.join(", ")}]`
+            );
         } finally {
             this.isSystemBusy = false;
         }
