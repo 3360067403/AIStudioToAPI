@@ -192,6 +192,7 @@ sudo docker compose down
 | `SECURE_COOKIES`            | 是否启用安全 Cookie。`true` 表示仅支持 HTTPS 协议访问控制台。 | `false`              |
 | `RATE_LIMIT_MAX_ATTEMPTS`   | 时间窗口内控制台允许的最大失败登录尝试次数（设为 0 禁用）。   | `5`                  |
 | `RATE_LIMIT_WINDOW_MINUTES` | 速率限制的时间窗口长度（分钟）。                              | `15`                 |
+| `CHECK_UPDATE`              | 是否在页面加载时检查版本更新。设为 `false` 可禁用。           | `true`               |
 
 #### 🌐 代理配置
 

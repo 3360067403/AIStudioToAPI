@@ -93,6 +93,7 @@
     "logoutError": "Error during logout.",
     "logoutFailed": "Logout failed.",
     "logoutSuccess": "Logout successful.",
+    "newVersionAvailable": "New version available",
     "noAccountSelected": "No account selected.",
     "noActiveAccount": "No active account",
     "notImplemented": "Not implemented yet",

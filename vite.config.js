@@ -8,8 +8,12 @@
 
 const { defineConfig } = require("vite");
 const vue = require("@vitejs/plugin-vue");
+const packageJson = require("./package.json");
 
 module.exports = defineConfig({
+    define: {
+        __APP_VERSION__: JSON.stringify(process.env.VERSION || packageJson.version),
+    },
     base: "/",
     build: {
         assetsDir: "assests",

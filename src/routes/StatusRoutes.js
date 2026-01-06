@@ -8,6 +8,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const VersionChecker = require("../utils/VersionChecker");
 
 /**
  * Status Routes Manager
@@ -19,6 +20,7 @@ class StatusRoutes {
         this.logger = serverSystem.logger;
         this.config = serverSystem.config;
         this.distIndexPath = serverSystem.distIndexPath;
+        this.versionChecker = new VersionChecker(this.logger);
     }
 
     /**
@@ -77,6 +79,29 @@ class StatusRoutes {
 
         app.get("/auth", isAuthenticated, (req, res) => {
             res.sendFile(this.distIndexPath);
+        });
+
+        // Version check endpoint - separate from status to avoid frequent calls
+        app.get("/api/version/check", isAuthenticated, async (req, res) => {
+            // Check if update checking is disabled via environment variable
+            const checkUpdate = process.env.CHECK_UPDATE?.toLowerCase() !== "false";
+            if (!checkUpdate) {
+                return res.status(200).json({
+                    current: this.versionChecker.getCurrentVersion(),
+                    disabled: true,
+                    hasUpdate: false,
+                    latest: null,
+                    releaseUrl: null,
+                });
+            }
+
+            try {
+                const result = await this.versionChecker.checkForUpdates();
+                res.status(200).json(result);
+            } catch (error) {
+                this.logger.error(`[VersionCheck] Error: ${error.message}`);
+                res.status(500).json({ error: "Failed to check for updates" });
+            }
         });
 
         app.get("/api/status", isAuthenticated, async (req, res) => {

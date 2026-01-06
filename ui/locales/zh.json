@@ -93,6 +93,7 @@
     "logoutError": "登出时发生错误。",
     "logoutFailed": "登出失败。",
     "logoutSuccess": "登出成功。",
+    "newVersionAvailable": "有新版本可用",
     "noAccountSelected": "未选择任何账号。",
     "noActiveAccount": "无活动账号",
     "notImplemented": "尚未实现",

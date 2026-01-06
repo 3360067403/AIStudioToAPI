@@ -38,6 +38,9 @@ module.exports = {
                 ecmaVersion: "latest",
                 sourceType: "module",
             },
+            globals: {
+                __APP_VERSION__: "readonly",
+            },
             rules: {
                 // Vue-specific rules for component naming
                 "vue/component-name-in-template-casing": ["error", "PascalCase"],

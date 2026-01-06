@@ -76,7 +76,9 @@ COPY --chown=node:node scripts ./scripts
 COPY --chown=node:node ui ./ui
 
 # Build frontend assets with Vite
-RUN npm run build:ui
+# VERSION is passed from docker build-args for version display in UI
+ARG VERSION
+RUN VERSION=${VERSION} npm run build:ui
 
 # Remove dev dependencies after build to reduce image size
 RUN npm prune --omit=dev && npm cache clean --force

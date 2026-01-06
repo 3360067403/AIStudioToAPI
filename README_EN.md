@@ -192,6 +192,7 @@ This endpoint is forwarded to the official Gemini API format endpoint.
 | `SECURE_COOKIES`            | Enable secure cookies. `true` for HTTPS only, `false` for both HTTP and HTTPS. | `false`              |
 | `RATE_LIMIT_MAX_ATTEMPTS`   | Maximum failed login attempts allowed within the time window (0 to disable).   | `5`                  |
 | `RATE_LIMIT_WINDOW_MINUTES` | Time window for rate limiting in minutes.                                      | `15`                 |
+| `CHECK_UPDATE`              | Enable version update check on page load. Set to `false` to disable.           | `true`               |
 
 #### 🌐 Proxy Configuration
 
