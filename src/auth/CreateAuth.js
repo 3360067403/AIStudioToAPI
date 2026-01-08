@@ -90,6 +90,13 @@ class CreateAuth {
                 `[VNC] Starting virtual screen (Xvfb) on display ${display} with resolution ${screenResolution}...`
             );
             const xvfb = spawn("Xvfb", [display, "-screen", "0", screenResolution, "+extension", "RANDR"]);
+            xvfb.on("error", err => {
+                if (err.code === "ENOENT") {
+                    this.logger.error("[VNC] Xvfb is not installed. VNC functionality requires Xvfb to be available.");
+                } else {
+                    this.logger.error(`[VNC] Xvfb spawn error: ${err.message}`);
+                }
+            });
             xvfb.stderr.on("data", data => {
                 const msg = data.toString();
                 // Filter out common, harmless X11 warnings
@@ -119,6 +126,15 @@ class CreateAuth {
                 "-quiet",
                 "-repeat",
             ]);
+            x11vnc.on("error", err => {
+                if (err.code === "ENOENT") {
+                    this.logger.error(
+                        "[VNC] x11vnc is not installed. VNC functionality requires x11vnc to be available."
+                    );
+                } else {
+                    this.logger.error(`[VNC] x11vnc spawn error: ${err.message}`);
+                }
+            });
             x11vnc.stderr.on("data", data => {
                 const msg = data.toString();
                 // Filter out common, harmless X11 warnings and info messages
@@ -143,6 +159,15 @@ class CreateAuth {
 
             this.logger.info(`[VNC] Starting websockify on port ${websockifyPort}...`);
             const websockify = spawn("websockify", [String(websockifyPort), `localhost:${vncPort}`]);
+            websockify.on("error", err => {
+                if (err.code === "ENOENT") {
+                    this.logger.error(
+                        "[VNC] websockify is not installed. VNC functionality requires websockify to be available."
+                    );
+                } else {
+                    this.logger.error(`[VNC] websockify spawn error: ${err.message}`);
+                }
+            });
             websockify.stdout.on("data", data => this.logger.info(`[websockify] ${data.toString()}`));
             websockify.stderr.on("data", data => {
                 const msg = data.toString();

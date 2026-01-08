@@ -53,7 +53,6 @@ After deployment, you need to add Google accounts. There are two methods:
 
 **Method 2: Upload Auth Files**
 
-- Run `npm run setup-auth` on a Windows machine to generate auth files
 - Run `npm run setup-auth` on your local machine to generate auth files
 - In the web console, click "Upload Auth" to upload the auth JSON file
 
