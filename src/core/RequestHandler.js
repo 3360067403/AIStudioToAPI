@@ -305,6 +305,7 @@ class RequestHandler {
             }
         });
 
+        this.logger.info(`[Request] Incoming ${req.method} ${req.path} (ID: ${requestId})`);
         const proxyRequest = this._buildProxyRequest(req, requestId);
         proxyRequest.is_generative = isGenerativeRequest;
         const messageQueue = this.connectionRegistry.createMessageQueue(requestId);
@@ -321,11 +322,11 @@ class RequestHandler {
                 if (this.serverSystem.streamingMode === "fake") {
                     await this._handlePseudoStreamResponse(proxyRequest, messageQueue, req, res);
                 } else {
-                    await this._handleRealStreamResponse(proxyRequest, messageQueue, res);
+                    await this._handleRealStreamResponse(proxyRequest, messageQueue, req, res);
                 }
             } else {
                 proxyRequest.streaming_mode = "fake";
-                await this._handleNonStreamResponse(proxyRequest, messageQueue, res);
+                await this._handleNonStreamResponse(proxyRequest, messageQueue, req, res);
             }
         } catch (error) {
             this._handleRequestError(error, res);
@@ -689,7 +690,7 @@ class RequestHandler {
         }
     }
 
-    async _handleRealStreamResponse(proxyRequest, messageQueue, res) {
+    async _handleRealStreamResponse(proxyRequest, messageQueue, req, res) {
         this.logger.info(`[Request] Request dispatched to browser for processing...`);
         this._forwardRequest(proxyRequest);
         const headerMessage = await messageQueue.dequeue();
@@ -715,7 +716,7 @@ class RequestHandler {
             this.authSwitcher.failureCount = 0;
         }
 
-        this._setResponseHeaders(res, headerMessage);
+        this._setResponseHeaders(res, headerMessage, req);
         this.logger.info("[Request] Starting streaming transmission...");
         try {
             let lastChunk = "";
@@ -728,8 +729,11 @@ class RequestHandler {
                     break;
                 }
                 if (dataMessage.data) {
-                    res.write(dataMessage.data);
-                    lastChunk = dataMessage.data;
+                    const writeData = dataMessage.is_binary
+                        ? Buffer.from(dataMessage.data, "base64")
+                        : dataMessage.data;
+                    res.write(writeData);
+                    if (!dataMessage.is_binary) lastChunk = dataMessage.data;
                 }
             }
             try {
@@ -757,7 +761,7 @@ class RequestHandler {
         }
     }
 
-    async _handleNonStreamResponse(proxyRequest, messageQueue, res) {
+    async _handleNonStreamResponse(proxyRequest, messageQueue, req, res) {
         this.logger.info(`[Request] Entering non-stream processing mode...`);
 
         try {
@@ -783,7 +787,7 @@ class RequestHandler {
             }
 
             const headerMessage = result.message;
-            let fullBody = "";
+            const chunks = [];
             let receiving = true;
             while (receiving) {
                 const message = await messageQueue.dequeue(300000);
@@ -793,12 +797,17 @@ class RequestHandler {
                     break;
                 }
                 if (message.event_type === "chunk" && message.data) {
-                    fullBody += message.data;
+                    const chunkBuffer = message.is_binary
+                        ? Buffer.from(message.data, "base64")
+                        : Buffer.from(message.data);
+                    chunks.push(chunkBuffer);
                 }
             }
 
+            const fullBodyBuffer = Buffer.concat(chunks);
+
             try {
-                const fullResponse = JSON.parse(fullBody);
+                const fullResponse = JSON.parse(fullBodyBuffer.toString());
                 const finishReason = fullResponse.candidates?.[0]?.finishReason || "UNKNOWN";
                 this.logger.info(
                     `✅ [Request] Response ended, reason: ${finishReason}, request ID: ${proxyRequest.request_id}`
@@ -807,9 +816,8 @@ class RequestHandler {
                 // Ignore JSON parsing errors for finish reason
             }
 
-            res.status(headerMessage.status || 200)
-                .type("application/json")
-                .send(fullBody || "{}");
+            this._setResponseHeaders(res, headerMessage, req);
+            res.send(fullBodyBuffer);
 
             this.logger.info(`[Request] Complete non-stream response sent to client.`);
         } catch (error) {
@@ -963,11 +971,57 @@ class RequestHandler {
         }
     }
 
-    _setResponseHeaders(res, headerMessage) {
+    _setResponseHeaders(res, headerMessage, req) {
         res.status(headerMessage.status || 200);
         const headers = headerMessage.headers || {};
+
+        // Filter headers that might cause CORS conflicts
+        const forbiddenHeaders = [
+            "access-control-allow-origin",
+            "access-control-allow-methods",
+            "access-control-allow-headers",
+        ];
+
         Object.entries(headers).forEach(([name, value]) => {
-            if (name.toLowerCase() !== "content-length") res.set(name, value);
+            const lowerName = name.toLowerCase();
+            if (forbiddenHeaders.includes(lowerName)) return;
+            if (lowerName === "content-length") return;
+
+            // Special handling for upload URL and redirects: point them back to this proxy
+            if ((lowerName === "x-goog-upload-url" || lowerName === "location") && value.includes("googleapis.com")) {
+                try {
+                    const urlObj = new URL(value);
+                    // Construct local proxy URL using configured host/port
+                    // Note: The client (build.js) might have already embedded the original host in __proxy_host__
+                    // But wait, headerMessage comes from the BROWSER.
+                    // If the Browser sends back the header as received from Google, then it's the GOOGLE URL.
+                    // If the Browser rewrote it, it's the LOCALHOST URL.
+                    // build.js `_transmitHeaders` rewrites it!
+
+                    // So `value` is `http://localhost:xxxx/...&__proxy_host__=google.com` (from Browser)
+                    // We just need to ensure it points to *our* current listener address.
+
+                    // Use the Host header from the request to support remote clients (e.g. Docker IPs)
+                    // If req.headers.host exists (standard), use it. Otherwise fallback to config.
+                    let newAuthority;
+                    if (req && req.headers && req.headers.host) {
+                        newAuthority = req.headers.host;
+                    } else {
+                        const host = this.serverSystem.config.host === "0.0.0.0" ? "127.0.0.1" : this.serverSystem.config.host;
+                        newAuthority = `${host}:${this.serverSystem.config.httpPort}`;
+                    }
+
+                    const protocol = req.secure || (req.get && req.get("X-Forwarded-Proto") === "https") ? "https" : "http";
+                    const newUrl = `${protocol}://${newAuthority}${urlObj.pathname}${urlObj.search}`;
+
+                    this.logger.info(`[Response] Rewriting header ${name}: ${value} -> ${newUrl}`);
+                    res.set(name, newUrl);
+                } catch (e) {
+                    res.set(name, value);
+                }
+            } else {
+                res.set(name, value);
+            }
         });
     }
 
@@ -1159,6 +1213,8 @@ class RequestHandler {
             query_params: req.query || {},
             request_id: requestId,
             streaming_mode: this.serverSystem.streamingMode,
+            body_b64: req.rawBody ? req.rawBody.toString("base64") : undefined,
+            is_generative: req.method === "POST" && (req.path.includes("generateContent") || req.path.includes("streamGenerateContent")),
         };
     }
 
