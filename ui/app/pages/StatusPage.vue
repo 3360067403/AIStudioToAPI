@@ -174,10 +174,14 @@
                                         stroke-linejoin="round"
                                         style="margin-right: 6px"
                                     >
-                                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                                        <polyline points="13 2 13 9 20 9"></polyline>
+                                        <path d="M20 8h-2"></path>
+                                        <path d="M20 18h-2"></path>
+                                        <rect x="2" y="4" width="20" height="8" rx="2" ry="2"></rect>
+                                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                                        <line x1="6" y1="8" x2="6.01" y2="8"></line>
+                                        <line x1="6" y1="18" x2="6.01" y2="18"></line>
                                     </svg>
-                                    {{ t("serviceStatus") }}
+                                    {{ t("serviceConnection") }}
                                 </span>
                                 <span class="value status-text-bold" :class="serviceConnectedClass">{{
                                     serviceConnectedText
@@ -315,10 +319,9 @@
                                         stroke-linejoin="round"
                                         style="margin-right: 6px"
                                     >
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="9" cy="7" r="4"></circle>
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                        <polyline points="2 17 12 22 22 17"></polyline>
+                                        <polyline points="2 12 12 17 22 12"></polyline>
                                     </svg>
                                     {{ t("totalScanned") }}
                                 </span>
@@ -526,8 +529,10 @@
                                 stroke-linejoin="round"
                                 style="margin-right: 8px; vertical-align: text-bottom"
                             >
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                             </svg>
                             {{ t("accountManagement") }}
                         </h3>
@@ -627,11 +632,18 @@
                                 </el-tooltip>
                                 <div class="account-actions">
                                     <button
+                                        class="btn-switch"
+                                        :class="{ 'is-active': item.index === state.currentAuthIndex }"
                                         :disabled="isBusy || item.index === state.currentAuthIndex"
-                                        :title="t('btnSwitchAccount')"
+                                        :title="
+                                            item.index === state.currentAuthIndex
+                                                ? t('currentAccount')
+                                                : t('btnSwitchAccount')
+                                        "
                                         @click.stop="switchAccountByIndex(item.index)"
                                     >
                                         <svg
+                                            v-if="item.index !== state.currentAuthIndex"
                                             xmlns="http://www.w3.org/2000/svg"
                                             width="16"
                                             height="16"
@@ -641,6 +653,20 @@
                                             <path
                                                 d="M886.2 604.8H137.8c-22.1 0-40 17.9-40 40 0 8.4 2.6 16.2 7 22.6 1.9 4.5 4.8 8.7 8.4 12.4L289.5 856c7.8 7.8 18 11.7 28.3 11.7s20.5-3.9 28.3-11.7c15.6-15.6 15.6-40.9 0-56.6L231.3 684.8h654.8c22.1 0 40-17.9 40-40s-17.8-40-39.9-40zM137.8 419.2h748.4c22.1 0 40-17.9 40-40 0-8.4-2.6-16.2-7-22.6-1.4-3.3-3.4-6.5-5.8-9.5L769.2 170.9c-14-17.1-39.2-19.6-56.3-5.6-17.1 14-19.6 39.2-5.6 56.3l96.3 117.6H137.8c-22.1 0-40 17.9-40 40s17.9 40 40 40z"
                                             ></path>
+                                        </svg>
+                                        <svg
+                                            v-else
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <polyline points="20 6 9 17 4 12"></polyline>
                                         </svg>
                                     </button>
                                     <button
@@ -2319,6 +2345,19 @@ watchEffect(() => {
         &:hover:not(:disabled) {
             border-color: @primary-color;
             color: @primary-color;
+        }
+
+        &.btn-switch:hover:not(:disabled) {
+            border-color: @success-color;
+            color: @success-color;
+        }
+
+        &.btn-switch.is-active {
+            background-color: @background-white;
+            border-color: @success-color;
+            color: @success-color;
+            opacity: 1 !important;
+            cursor: not-allowed;
         }
 
         &:disabled {

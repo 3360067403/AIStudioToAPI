@@ -134,6 +134,7 @@
     "repo": "Repo",
     "running": "Running",
     "serviceConfig": "Service Configuration",
+    "serviceConnection": "Service Connection",
     "serviceStatus": "Service Status",
     "settingFailed": "Setting failed: {message}",
     "settings": "Settings",

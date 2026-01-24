@@ -134,6 +134,7 @@
     "repo": "仓库",
     "running": "运行中",
     "serviceConfig": "服务配置",
+    "serviceConnection": "服务连接",
     "serviceStatus": "服务状态",
     "settingFailed": "设置失败：{message}",
     "settings": "设置",
