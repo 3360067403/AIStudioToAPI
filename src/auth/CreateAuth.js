@@ -24,6 +24,47 @@ class CreateAuth {
         this.currentVncAbortController = null; // Controller to abort ongoing setup
     }
 
+    /**
+     * Helper: Run a promise but reject immediately if the signal is aborted.
+     * Ensures we don't block on long operations (like browser launch/nav) if a new request comes in.
+     */
+    async _runWithSignal(promise, signal) {
+        if (signal?.aborted) throw new Error("VNC_SETUP_ABORTED");
+        if (!signal) return promise;
+
+        return new Promise((resolve, reject) => {
+            const onAbort = () => {
+                signal.removeEventListener("abort", onAbort);
+                reject(new Error("VNC_SETUP_ABORTED"));
+            };
+
+            signal.addEventListener("abort", onAbort);
+
+            promise.then(
+                val => {
+                    signal.removeEventListener("abort", onAbort);
+                    if (signal.aborted) {
+                        // ZOMBIE CLEANUP: The operation succeeded but we already moved on.
+                        // If the result contains a browser instance, kill it.
+                        if (val && val.browser) {
+                            this.logger.warn("[VNC] 🧟 Zombie browser instance detected after abort. Killing it...");
+                            val.browser.close().catch(() => {});
+                        }
+                    } else {
+                        resolve(val);
+                    }
+                },
+                err => {
+                    signal.removeEventListener("abort", onAbort);
+                    if (!signal.aborted) {
+                        reject(err);
+                    }
+                    // If aborted, we ignore the error of the abandoned promise
+                }
+            );
+        });
+    }
+
     _waitForPort(port, timeout = 5000, signal = null) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
@@ -165,7 +206,7 @@ class CreateAuth {
             sessionResources.xvfb = xvfb;
 
             // Wait for Xvfb to be ready
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await this._runWithSignal(new Promise(resolve => setTimeout(resolve, 500)), signal);
             checkAborted();
 
             this.logger.info(`[VNC] Starting VNC server (x11vnc) on port ${vncPort}...`);
@@ -261,10 +302,13 @@ class CreateAuth {
             checkAborted();
 
             this.logger.info("[VNC] Launching browser for VNC session...");
-            const { browser, context } = await this.serverSystem.browserManager.launchBrowserForVNC({
-                env: { DISPLAY: display },
-                isMobile,
-            });
+            const { browser, context } = await this._runWithSignal(
+                this.serverSystem.browserManager.launchBrowserForVNC({
+                    env: { DISPLAY: display },
+                    isMobile,
+                }),
+                signal
+            );
             sessionResources.browser = browser;
             sessionResources.context = context;
 
@@ -301,10 +345,13 @@ class CreateAuth {
                 })();
             `);
 
-            await page.goto("https://aistudio.google.com/", {
-                timeout: 120000,
-                waitUntil: "domcontentloaded",
-            });
+            await this._runWithSignal(
+                page.goto("https://aistudio.google.com/", {
+                    timeout: 120000,
+                    waitUntil: "domcontentloaded",
+                }),
+                signal
+            );
             sessionResources.page = page;
             checkAborted();
 
