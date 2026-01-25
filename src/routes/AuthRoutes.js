@@ -84,7 +84,14 @@ class AuthRoutes {
         if (req.session.isAuthenticated) {
             return next();
         }
-        res.redirect("/login");
+
+        // Use 303 See Other to force the browser to use GET for the redirect
+        // This solves the issue where DELETE/POST requests would otherwise be redirected as DELETE/POST /login
+        if (req.xhr || req.headers.accept?.includes("application/json")) {
+            return res.status(401).json({ message: "unlimited" });
+        }
+
+        res.redirect(303, "/login");
     }
 
     /**
