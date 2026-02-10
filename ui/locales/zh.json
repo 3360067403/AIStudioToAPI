@@ -177,6 +177,7 @@
     "uploadFile": "上传 Auth",
     "usageCount": "使用次数",
     "versionInfo": "版本信息",
+    "viewRelease": "查看版本发布",
     "warningDeleteCurrentAccount": "您即将删除当前正在使用的账号。浏览器连接将被关闭，您需要切换到其他账号。是否继续？",
     "warningTitle": "警告",
     "zipExtractFailed": "解压失败",
