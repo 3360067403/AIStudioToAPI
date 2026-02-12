@@ -120,8 +120,6 @@ Stop the service:
 sudo docker compose down
 ```
 
-**Proxy Configuration (Optional):** If you need to use a proxy to access Google services, add `-e HTTP_PROXY=http://your-proxy:port -e HTTPS_PROXY=http://your-proxy:port` to the Docker command, or add these environment variables to your `docker-compose.yml`.
-
 ##### 🛠️ Option 3: Build from Source
 
 If you prefer to build the Docker image yourself, you can use the following commands:
@@ -243,6 +241,14 @@ This endpoint forwards requests to the official Gemini API format endpoint.
 | `SWITCH_ON_USES`                | Number of requests before automatically switching accounts (`0` to disable).                                                                                                                              | `40`      |
 | `FAILURE_THRESHOLD`             | Number of consecutive failures before switching accounts (`0` to disable).                                                                                                                                | `3`       |
 | `IMMEDIATE_SWITCH_STATUS_CODES` | HTTP status codes that trigger immediate account switching (comma-separated, set to empty to disable).                                                                                                    | `429,503` |
+
+#### 🌐 Network Configuration
+
+| Variable      | Description                                                                                                                                                                                                     | Default |
+| :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------ |
+| `HTTP_PROXY`  | HTTP proxy address for accessing Google services.                                                                                                                                                               | None    |
+| `HTTPS_PROXY` | HTTPS proxy address for accessing Google services.                                                                                                                                                              | None    |
+| `NO_PROXY`    | Comma-separated list of addresses to bypass the proxy. **The project automatically bypasses local addresses (localhost, 127.0.0.1 and 0.0.0.0), so manual local bypass configuration is usually not required.** | None    |
 
 #### 🗒️ Other Configuration
 

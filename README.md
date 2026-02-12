@@ -122,8 +122,6 @@ sudo docker compose logs -f
 sudo docker compose down
 ```
 
-**代理配置（可选）：** 如需使用代理访问 Google 服务，在 Docker 命令中添加 `-e HTTP_PROXY=http://your-proxy:port -e HTTPS_PROXY=http://your-proxy:port`，或在 `docker-compose.yml` 的 `environment` 中添加这两个环境变量。
-
 ##### 🛠️ 方式 3：从源码构建
 
 如果您希望自己构建 Docker 镜像，可以使用以下命令：
@@ -245,6 +243,14 @@ sudo docker compose down
 | `SWITCH_ON_USES`                | 自动切换帐户前允许的请求次数（设为 `0` 禁用）。                                                                            | `40`      |
 | `FAILURE_THRESHOLD`             | 切换帐户前允许的连续失败次数（设为 `0` 禁用）。                                                                            | `3`       |
 | `IMMEDIATE_SWITCH_STATUS_CODES` | 触发立即切换帐户的 HTTP 状态码（逗号分隔，设为空值以禁用）。                                                               | `429,503` |
+
+#### 🌐 网络配置
+
+| 变量名        | 描述                                                                                                                          | 默认值 |
+| :------------ | :---------------------------------------------------------------------------------------------------------------------------- | :----- |
+| `HTTP_PROXY`  | 用于访问 Google 服务的 HTTP 代理地址。                                                                                        | 无     |
+| `HTTPS_PROXY` | 用于访问 Google 服务的 HTTPS 代理地址。                                                                                       | 无     |
+| `NO_PROXY`    | 不经过代理的地址列表（逗号分隔）。**项目已内置自动绕过本地地址（localhost, 127.0.0.1, 0.0.0.0），通常无需手动配置本地绕过。** | 无     |
 
 #### 🗒️ 其他配置
 
